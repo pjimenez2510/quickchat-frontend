@@ -49,38 +49,49 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  /* QuickChat Messenger palette */
+  --background: #FFFFFF;
+  --foreground: #050505;
+  --card: #FFFFFF;
+  --card-foreground: #050505;
+  --popover: #FFFFFF;
+  --popover-foreground: #050505;
+  --primary: #0084FF;
+  --primary-foreground: #FFFFFF;
+  --secondary: #E4E6EB;
+  --secondary-foreground: #050505;
+  --muted: #F0F2F5;
+  --muted-foreground: #65676B;
+  --accent: #F0F2F5;
+  --accent-foreground: #050505;
+  --destructive: #E41E3F;
+  --border: #E4E6EB;
+  --input: #E4E6EB;
+  --ring: #0084FF;
+  --chart-1: #0084FF;
+  --chart-2: #31A24C;
+  --chart-3: #E41E3F;
+  --chart-4: #65676B;
+  --chart-5: #050505;
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: #F0F2F5;
+  --sidebar-foreground: #050505;
+  --sidebar-primary: #0084FF;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #E4E6EB;
+  --sidebar-accent-foreground: #050505;
+  --sidebar-border: #E4E6EB;
+  --sidebar-ring: #0084FF;
+
+  /* QuickChat custom tokens */
+  --qc-bubble-sent: #0084FF;
+  --qc-bubble-sent-text: #FFFFFF;
+  --qc-bubble-received: #E4E6EB;
+  --qc-bubble-received-text: #050505;
+  --qc-online: #31A24C;
+  --qc-error: #E41E3F;
+  --qc-read: #0084FF;
+  --qc-hover: #F0F2F5;
 }
 
 .dark {
