@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth-store';
+import { SocketProvider } from '@/components/providers/socket-provider';
 import { api } from '@/lib/api';
 import type { User } from '@/types/user';
 
@@ -57,5 +58,5 @@ export default function ChatLayout({
     );
   }
 
-  return <>{children}</>;
+  return <SocketProvider>{children}</SocketProvider>;
 }
