@@ -134,7 +134,7 @@ export function ChatPanel() {
   }
 
   return (
-    <div className="flex flex-1 flex-col bg-background">
+    <div className="flex h-full flex-1 flex-col overflow-hidden bg-background">
       <ChatHeader
         displayName={conversation.otherUser.displayName}
         username={conversation.otherUser.username}
