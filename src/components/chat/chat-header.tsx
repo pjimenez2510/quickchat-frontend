@@ -1,5 +1,7 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+import { ArrowLeft } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatRelativeTime } from '@/lib/format';
 
@@ -14,12 +16,13 @@ interface ChatHeaderProps {
 
 export function ChatHeader({
   displayName,
-  username,
   avatarUrl,
   isOnline,
   lastSeenAt,
   isTyping,
 }: ChatHeaderProps) {
+  const router = useRouter();
+
   const initials = displayName
     .split(' ')
     .map((n) => n[0])
@@ -37,6 +40,14 @@ export function ChatHeader({
 
   return (
     <div className="flex items-center gap-3 border-b border-border bg-background px-4 py-3">
+      {/* Back button - mobile only */}
+      <button
+        onClick={() => router.push('/')}
+        className="flex md:hidden h-9 w-9 shrink-0 items-center justify-center rounded-full hover:bg-accent transition-colors"
+      >
+        <ArrowLeft className="h-5 w-5" />
+      </button>
+
       <div className="relative">
         <Avatar className="h-10 w-10">
           <AvatarImage src={avatarUrl ?? undefined} />

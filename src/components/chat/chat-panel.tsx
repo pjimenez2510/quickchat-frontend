@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useCallback } from 'react';
-import { MessageCircle } from 'lucide-react';
 import { ChatHeader } from './chat-header';
 import { MessageList } from './message-list';
 import { MessageInput } from './message-input';
@@ -10,6 +9,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { useChatStore } from '@/stores/chat-store';
 import { useSocketContext } from '@/components/providers/socket-provider';
 import type { Message } from '@/types/message';
+import type { Conversation } from '@/types/conversation';
 
 export function ChatPanel() {
   const user = useAuthStore((s) => s.user);
@@ -19,13 +19,15 @@ export function ChatPanel() {
     messages: messagesMap,
     typingUsers,
     setMessages,
+    setConversations,
   } = useChatStore();
 
   const { socket, isConnected } = useSocketContext();
 
-  const conversation = conversations.find(
+  let conversation = conversations.find(
     (c) => c.id === activeConversationId,
   );
+
   const currentMessages = activeConversationId
     ? messagesMap.get(activeConversationId) ?? []
     : [];
@@ -34,6 +36,21 @@ export function ChatPanel() {
         (uid) => uid !== user?.id,
       )
     : [];
+
+  // Load conversation if not in store (e.g., direct URL access)
+  useEffect(() => {
+    if (!activeConversationId) return;
+
+    const exists = conversations.find((c) => c.id === activeConversationId);
+    if (exists) return;
+
+    api
+      .get<Conversation>(`/conversations/${activeConversationId}`)
+      .then((res) => {
+        setConversations([res.data, ...conversations]);
+      })
+      .catch(() => {});
+  }, [activeConversationId, conversations, setConversations]);
 
   // Load messages when conversation changes
   useEffect(() => {
@@ -74,20 +91,13 @@ export function ChatPanel() {
     socket.emit('typing:stop', { conversationId: activeConversationId });
   }, [socket, activeConversationId]);
 
-  // Empty state
+  // Re-read conversation after it might have been added
+  conversation = conversations.find((c) => c.id === activeConversationId);
+
   if (!activeConversationId || !conversation) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center bg-background">
-        <div
-          className="flex h-16 w-16 items-center justify-center rounded-2xl mb-4"
-          style={{ backgroundColor: 'var(--qc-bubble-sent)' }}
-        >
-          <MessageCircle className="h-8 w-8 text-white" />
-        </div>
-        <h2 className="text-xl font-semibold">QuickChat</h2>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Select a conversation to start messaging
-        </p>
+      <div className="flex flex-1 items-center justify-center bg-background">
+        <p className="text-sm text-muted-foreground">Loading conversation...</p>
       </div>
     );
   }

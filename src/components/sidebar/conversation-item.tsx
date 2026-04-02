@@ -38,8 +38,10 @@ export function ConversationItem({
     <button
       onClick={onClick}
       className={cn(
-        'flex w-full items-center gap-3 rounded-lg p-3 text-left transition-colors hover:bg-accent',
-        isActive && 'bg-accent',
+        'flex w-full items-center gap-3 rounded-lg p-3 text-left transition-all',
+        isActive
+          ? 'bg-primary/10 border-l-[3px] border-primary'
+          : 'hover:bg-accent border-l-[3px] border-transparent',
       )}
     >
       <div className="relative shrink-0">
@@ -59,7 +61,10 @@ export function ConversationItem({
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between">
-          <span className="truncate text-sm font-semibold">
+          <span className={cn(
+            'truncate text-sm font-semibold',
+            isActive && 'text-primary',
+          )}>
             {otherUser.displayName}
           </span>
           {lastMessage && (

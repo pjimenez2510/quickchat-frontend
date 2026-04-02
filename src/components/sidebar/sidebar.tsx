@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Search, LogOut, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
@@ -16,9 +16,11 @@ import type { Conversation } from '@/types/conversation';
 
 export function Sidebar() {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, clearAuth } = useAuthStore();
-  const { conversations, setConversations, activeConversationId, setActiveConversation } =
+  const { conversations, setConversations } =
     useChatStore();
+  const activeConversationId = pathname?.startsWith('/chat/') ? pathname.split('/chat/')[1] : null;
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<
     { id: string; username: string; displayName: string; avatarUrl: string | null; isOnline: boolean }[]
@@ -58,9 +60,7 @@ export function Sidebar() {
       const res = await api.post<Conversation>('/conversations', {
         otherUserId,
       });
-      setActiveConversation(res.data.id);
 
-      // Add to conversations if not exists
       const exists = conversations.find((c) => c.id === res.data.id);
       if (!exists) {
         setConversations([res.data, ...conversations]);
@@ -68,6 +68,7 @@ export function Sidebar() {
 
       setSearchQuery('');
       setSearchResults([]);
+      router.push(`/chat/${res.data.id}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to start conversation');
     }
@@ -161,7 +162,7 @@ export function Sidebar() {
                   conversation={conv}
                   isActive={conv.id === activeConversationId}
                   currentUserId={user?.id ?? ''}
-                  onClick={() => setActiveConversation(conv.id)}
+                  onClick={() => router.push(`/chat/${conv.id}`)}
                 />
               ))
             )}
