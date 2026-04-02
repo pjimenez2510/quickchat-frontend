@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { MessageBubble } from './message-bubble';
 import { ContextMenu } from './context-menu';
+import { EditMessageModal } from './edit-message-modal';
 import { useSocketContext } from '@/components/providers/socket-provider';
 import { useChatStore } from '@/stores/chat-store';
 import type { Message } from '@/types/message';
@@ -23,6 +24,7 @@ export function MessageList({ messages, currentUserId }: MessageListProps) {
     message: Message;
     position: { x: number; y: number };
   } | null>(null);
+  const [editingMessage, setEditingMessage] = useState<Message | null>(null);
 
   useEffect(() => {
     if (messages.length > prevLengthRef.current) {
@@ -52,15 +54,21 @@ export function MessageList({ messages, currentUserId }: MessageListProps) {
   }, [contextMenu]);
 
   const handleEdit = useCallback(() => {
-    if (!contextMenu || !socket) return;
-    const newContent = prompt('Edit message:', contextMenu.message.content ?? '');
-    if (newContent && newContent !== contextMenu.message.content) {
+    if (!contextMenu) return;
+    setEditingMessage(contextMenu.message);
+  }, [contextMenu]);
+
+  const handleEditSave = useCallback(
+    (newContent: string) => {
+      if (!editingMessage || !socket) return;
       socket.emit('message:edit', {
-        messageId: contextMenu.message.id,
+        messageId: editingMessage.id,
         content: newContent,
       });
-    }
-  }, [contextMenu, socket]);
+      setEditingMessage(null);
+    },
+    [editingMessage, socket],
+  );
 
   const handleDeleteForMe = useCallback(() => {
     if (!contextMenu || !socket) return;
@@ -148,6 +156,14 @@ export function MessageList({ messages, currentUserId }: MessageListProps) {
         </div>
         <div ref={bottomRef} />
       </div>
+
+      {editingMessage && (
+        <EditMessageModal
+          content={editingMessage.content ?? ''}
+          onSave={handleEditSave}
+          onClose={() => setEditingMessage(null)}
+        />
+      )}
 
       {contextMenu && (
         <ContextMenu
