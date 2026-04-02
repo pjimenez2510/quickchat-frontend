@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback, useState, useRef } from 'react';
 import { ChatHeader } from './chat-header';
-import { MessageList } from './message-list';
+import { MessageList, type MessageListHandle } from './message-list';
 import { MessageInput } from './message-input';
 import { ReplyBar } from './reply-bar';
 import { PinnedMessagesPanel } from './pinned-messages-panel';
@@ -111,6 +111,7 @@ export function ChatPanel() {
   }, [socket, activeConversationId]);
 
   const [showPinned, setShowPinned] = useState(false);
+  const messageListRef = useRef<MessageListHandle>(null);
 
   // Re-read conversation after it might have been added
   conversation = conversations.find((c) => c.id === activeConversationId);
@@ -140,11 +141,11 @@ export function ChatPanel() {
         <PinnedMessagesPanel
           conversationId={activeConversationId}
           onClose={() => setShowPinned(false)}
-          onNavigate={() => {}}
+          onNavigate={(messageId) => messageListRef.current?.scrollToMessage(messageId)}
         />
       )}
 
-      <MessageList messages={currentMessages} currentUserId={user?.id ?? ''} />
+      <MessageList ref={messageListRef} messages={currentMessages} currentUserId={user?.id ?? ''} />
 
       {replyToMessage && (
         <ReplyBar message={replyToMessage} onCancel={() => setReplyTo(null)} />
