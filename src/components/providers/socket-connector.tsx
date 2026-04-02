@@ -52,6 +52,11 @@ export function SocketConnector({ children }: { children: React.ReactNode }) {
       const store = useChatStore.getState();
       store.addMessage(data.conversationId, data.message);
 
+      // Auto read-receipt if this conversation is currently open
+      if (store.activeConversationId === data.conversationId && socket) {
+        socket.emit('message:read', { conversationId: data.conversationId });
+      }
+
       // Check if conversation exists in store
       const exists = store.conversations.find(
         (c) => c.id === data.conversationId,
