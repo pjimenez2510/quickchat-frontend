@@ -38,6 +38,7 @@ export const useChatStore = create<ChatState>((set) => ({
     set((state) => {
       const newMessages = new Map(state.messages);
       const existing = newMessages.get(conversationId) ?? [];
+      if (existing.some((m) => m.id === message.id)) return state;
       newMessages.set(conversationId, [...existing, message]);
       return { messages: newMessages };
     }),
@@ -45,7 +46,11 @@ export const useChatStore = create<ChatState>((set) => ({
   setMessages: (conversationId, messages) =>
     set((state) => {
       const newMessages = new Map(state.messages);
-      newMessages.set(conversationId, messages);
+      const existing = newMessages.get(conversationId) ?? [];
+      // Merge: keep existing that aren't in new set, then add new
+      const ids = new Set(messages.map((m) => m.id));
+      const kept = existing.filter((m) => !ids.has(m.id));
+      newMessages.set(conversationId, [...kept, ...messages]);
       return { messages: newMessages };
     }),
 
@@ -53,7 +58,9 @@ export const useChatStore = create<ChatState>((set) => ({
     set((state) => {
       const newMessages = new Map(state.messages);
       const existing = newMessages.get(conversationId) ?? [];
-      newMessages.set(conversationId, [...messages, ...existing]);
+      const existingIds = new Set(existing.map((m) => m.id));
+      const unique = messages.filter((m) => !existingIds.has(m.id));
+      newMessages.set(conversationId, [...unique, ...existing]);
       return { messages: newMessages };
     }),
 
