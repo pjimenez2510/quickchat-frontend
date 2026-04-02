@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { ChatHeader } from './chat-header';
 import { MessageList } from './message-list';
 import { MessageInput } from './message-input';
 import { ReplyBar } from './reply-bar';
+import { PinnedMessagesPanel } from './pinned-messages-panel';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth-store';
 import { useChatStore } from '@/stores/chat-store';
@@ -109,6 +110,8 @@ export function ChatPanel() {
     socket.emit('typing:stop', { conversationId: activeConversationId });
   }, [socket, activeConversationId]);
 
+  const [showPinned, setShowPinned] = useState(false);
+
   // Re-read conversation after it might have been added
   conversation = conversations.find((c) => c.id === activeConversationId);
 
@@ -129,7 +132,17 @@ export function ChatPanel() {
         isOnline={conversation.otherUser.isOnline}
         lastSeenAt={conversation.otherUser.lastSeenAt}
         isTyping={typingInConversation.length > 0}
+        onTogglePinned={() => setShowPinned(!showPinned)}
+        showPinned={showPinned}
       />
+
+      {showPinned && activeConversationId && (
+        <PinnedMessagesPanel
+          conversationId={activeConversationId}
+          onClose={() => setShowPinned(false)}
+          onNavigate={() => {}}
+        />
+      )}
 
       <MessageList messages={currentMessages} currentUserId={user?.id ?? ''} />
 
