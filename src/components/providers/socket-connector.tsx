@@ -11,23 +11,30 @@ import type { Conversation } from '@/types/conversation';
 export function SocketConnector({ children }: { children: React.ReactNode }) {
   const { socket, connect, disconnect } = useSocketContext();
   const user = useAuthStore((s) => s.user);
-  const hasConnected = useRef(false);
+  const hasInitialized = useRef(false);
 
-  // Connect socket once when user is available
+  // Load conversations and connect socket once
   useEffect(() => {
-    if (hasConnected.current || !user) return;
+    if (hasInitialized.current || !user) return;
+    hasInitialized.current = true;
 
+    // Load conversations once
+    api
+      .get<Conversation[]>('/conversations')
+      .then((res) => {
+        useChatStore.getState().setConversations(res.data);
+      })
+      .catch(() => {});
+
+    // Connect socket
     const token = localStorage.getItem('accessToken');
     if (token) {
       connect(token);
-      hasConnected.current = true;
     }
 
     return () => {
-      if (hasConnected.current) {
-        disconnect();
-        hasConnected.current = false;
-      }
+      disconnect();
+      hasInitialized.current = false;
     };
   }, [user, connect, disconnect]);
 
@@ -51,6 +58,11 @@ export function SocketConnector({ children }: { children: React.ReactNode }) {
     }) => {
       const store = useChatStore.getState();
       store.addMessage(data.conversationId, data.message);
+
+      // Auto read-receipt if this conversation is currently open
+      if (store.activeConversationId === data.conversationId && socket) {
+        socket.emit('message:read', { conversationId: data.conversationId });
+      }
 
       // Check if conversation exists in store
       const exists = store.conversations.find(
@@ -84,14 +96,36 @@ export function SocketConnector({ children }: { children: React.ReactNode }) {
         .setTyping(data.conversationId, data.userId, data.isTyping);
     };
 
+    const handleDelivered = (data: {
+      messageId: string;
+      conversationId: string;
+    }) => {
+      useChatStore.getState().markMessageDelivered(data.conversationId, data.messageId);
+    };
+
+    const handleRead = (data: {
+      conversationId: string;
+      userId: string;
+    }) => {
+      const currentUserId = useAuthStore.getState().user?.id;
+      // Only update when the OTHER user read our messages (not when we read theirs)
+      if (data.userId !== currentUserId) {
+        useChatStore.getState().markConversationRead(data.conversationId, currentUserId ?? '');
+      }
+    };
+
     socket.on('user:online', handleUserOnline);
     socket.on('message:new', handleNewMessage);
     socket.on('user:typing', handleTyping);
+    socket.on('message:delivered', handleDelivered);
+    socket.on('message:read', handleRead);
 
     return () => {
       socket.off('user:online', handleUserOnline);
       socket.off('message:new', handleNewMessage);
       socket.off('user:typing', handleTyping);
+      socket.off('message:delivered', handleDelivered);
+      socket.off('message:read', handleRead);
     };
   }, [socket]);
 
