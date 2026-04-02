@@ -3,9 +3,12 @@
 import { useState, useRef, useCallback } from 'react';
 import { Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { EmojiPicker } from './emoji-picker';
+import { GifPicker } from './gif-picker';
+import { StickerPicker } from './sticker-picker';
 
 interface MessageInputProps {
-  onSend: (content: string) => void;
+  onSend: (content: string, type?: string, mediaUrl?: string) => void;
   onTypingStart: () => void;
   onTypingStop: () => void;
   disabled?: boolean;
@@ -53,7 +56,6 @@ export function MessageInput({
       onTypingStop();
     }
 
-    // Reset textarea height
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }
@@ -70,36 +72,58 @@ export function MessageInput({
     setContent(e.target.value);
     handleTyping();
 
-    // Auto-resize textarea
     const textarea = e.target;
     textarea.style.height = 'auto';
     textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;
   };
 
+  const handleEmojiSelect = (emoji: string) => {
+    setContent((prev) => prev + emoji);
+    textareaRef.current?.focus();
+  };
+
+  const handleGifSelect = (gifUrl: string) => {
+    onSend(gifUrl, 'GIF', gifUrl);
+  };
+
+  const handleStickerSelect = (sticker: string) => {
+    onSend(sticker, 'STICKER');
+  };
+
   return (
-    <div className="flex items-end gap-2 border-t border-border bg-background p-4">
-      <div className="flex-1">
-        <textarea
-          ref={textareaRef}
-          value={content}
-          onChange={handleChange}
-          onKeyDown={handleKeyDown}
-          placeholder="Type a message..."
-          disabled={disabled}
-          rows={1}
-          className="w-full resize-none rounded-2xl border border-border bg-accent/30 px-4 py-2.5 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/30 disabled:opacity-50"
-          style={{ maxHeight: '120px' }}
-        />
+    <div className="border-t border-border bg-background px-4 py-3">
+      {/* Toolbar */}
+      <div className="flex items-center gap-0.5 mb-2">
+        <EmojiPicker onEmojiSelect={handleEmojiSelect} />
+        <GifPicker onGifSelect={handleGifSelect} />
+        <StickerPicker onStickerSelect={handleStickerSelect} />
       </div>
 
-      <Button
-        size="icon"
-        onClick={handleSend}
-        disabled={disabled || !content.trim()}
-        className="h-10 w-10 shrink-0 rounded-full"
-      >
-        <Send className="h-4 w-4" />
-      </Button>
+      {/* Input row */}
+      <div className="flex items-end gap-2">
+        <div className="flex-1">
+          <textarea
+            ref={textareaRef}
+            value={content}
+            onChange={handleChange}
+            onKeyDown={handleKeyDown}
+            placeholder="Type a message..."
+            disabled={disabled}
+            rows={1}
+            className="w-full resize-none rounded-2xl border border-border bg-accent/30 px-4 py-2.5 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/30 disabled:opacity-50"
+            style={{ maxHeight: '120px' }}
+          />
+        </div>
+
+        <Button
+          size="icon"
+          onClick={handleSend}
+          disabled={disabled || !content.trim()}
+          className="h-10 w-10 shrink-0 rounded-full"
+        >
+          <Send className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   );
 }
