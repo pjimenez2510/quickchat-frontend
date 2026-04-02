@@ -10,6 +10,24 @@ interface VoiceRecorderProps {
   isUploading: boolean;
 }
 
+function getSupportedMimeType(): string {
+  const types = [
+    'audio/webm;codecs=opus',
+    'audio/webm',
+    'audio/ogg;codecs=opus',
+    'audio/mp4',
+    'audio/mpeg',
+  ];
+
+  for (const type of types) {
+    if (MediaRecorder.isTypeSupported(type)) {
+      return type;
+    }
+  }
+
+  return '';
+}
+
 export function VoiceRecorder({ onVoiceReady, isUploading }: VoiceRecorderProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -18,11 +36,20 @@ export function VoiceRecorder({ onVoiceReady, isUploading }: VoiceRecorderProps)
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const startRecording = useCallback(async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      toast.error('Your browser does not support audio recording');
+      return;
+    }
+
+    const mimeType = getSupportedMimeType();
+    if (!mimeType) {
+      toast.error('No supported audio format found in your browser');
+      return;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus',
-      });
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
 
       chunksRef.current = [];
       mediaRecorderRef.current = mediaRecorder;
@@ -32,7 +59,7 @@ export function VoiceRecorder({ onVoiceReady, isUploading }: VoiceRecorderProps)
       };
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        const blob = new Blob(chunksRef.current, { type: mimeType });
         stream.getTracks().forEach((t) => t.stop());
         onVoiceReady(blob);
       };
@@ -44,8 +71,12 @@ export function VoiceRecorder({ onVoiceReady, isUploading }: VoiceRecorderProps)
       timerRef.current = setInterval(() => {
         setDuration((d) => d + 1);
       }, 1000);
-    } catch {
-      toast.error('Microphone access denied');
+    } catch (err) {
+      const message =
+        err instanceof DOMException && err.name === 'NotAllowedError'
+          ? 'Microphone access denied. Please allow it in your browser settings.'
+          : 'Failed to start recording';
+      toast.error(message);
     }
   }, [onVoiceReady]);
 
