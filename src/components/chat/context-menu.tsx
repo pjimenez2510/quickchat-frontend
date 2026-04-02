@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import {
   Reply,
   Pencil,
@@ -42,6 +42,7 @@ export function ContextMenu({
   onCopy,
 }: ContextMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const [adjustedPos, setAdjustedPos] = useState(position);
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -60,6 +61,27 @@ export function ContextMenu({
     };
   }, [onClose]);
 
+  // Adjust position after mount to prevent overflow
+  useEffect(() => {
+    if (!ref.current) return;
+    const rect = ref.current.getBoundingClientRect();
+    const padding = 8;
+    let x = position.x;
+    let y = position.y;
+
+    if (x + rect.width > window.innerWidth - padding) {
+      x = window.innerWidth - rect.width - padding;
+    }
+    if (x < padding) x = padding;
+
+    if (y + rect.height > window.innerHeight - padding) {
+      y = window.innerHeight - rect.height - padding;
+    }
+    if (y < padding) y = padding;
+
+    setAdjustedPos({ x, y });
+  }, [position]);
+
   const canEdit =
     isOwn &&
     message.type === 'TEXT' &&
@@ -68,11 +90,8 @@ export function ContextMenu({
   return (
     <div
       ref={ref}
-      className="fixed z-50 min-w-[180px] rounded-xl border border-border bg-background shadow-lg py-1"
-      style={{
-        top: Math.min(position.y, window.innerHeight - 350),
-        left: Math.min(position.x, window.innerWidth - 200),
-      }}
+      className="fixed z-50 min-w-[180px] max-w-[220px] rounded-xl border border-border bg-background shadow-lg py-1"
+      style={{ top: adjustedPos.y, left: adjustedPos.x }}
     >
       {/* Quick reactions */}
       <div className="flex gap-1 px-2 py-2 border-b border-border">
