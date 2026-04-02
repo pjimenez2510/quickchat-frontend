@@ -51,13 +51,14 @@ export function ChatPanel() {
   }, [activeConversationId, messagesMap, setMessages]);
 
   const handleSend = useCallback(
-    (content: string) => {
+    (content: string, type?: string, mediaUrl?: string) => {
       if (!socket || !activeConversationId) return;
 
       socket.emit('message:send', {
         conversationId: activeConversationId,
         content,
-        type: 'TEXT',
+        type: type ?? 'TEXT',
+        mediaUrl,
       });
     },
     [socket, activeConversationId],

@@ -76,19 +76,26 @@ export function MessageBubble({ message, isOwn, showAvatar }: MessageBubbleProps
         {/* Message bubble */}
         <div
           className={cn(
-            'rounded-2xl px-4 py-2 text-[14px] leading-relaxed shadow-sm',
-            isOwn
-              ? 'rounded-br-md text-white'
-              : 'rounded-bl-md',
+            'rounded-2xl text-[14px] leading-relaxed',
+            message.type === 'STICKER'
+              ? 'px-1 py-1'
+              : cn(
+                  'px-4 py-2 shadow-sm',
+                  isOwn ? 'rounded-br-md' : 'rounded-bl-md',
+                ),
           )}
-          style={{
-            backgroundColor: isOwn
-              ? 'var(--qc-bubble-sent)'
-              : 'var(--qc-bubble-received)',
-            color: isOwn
-              ? 'var(--qc-bubble-sent-text)'
-              : 'var(--qc-bubble-received-text)',
-          }}
+          style={
+            message.type === 'STICKER'
+              ? {}
+              : {
+                  backgroundColor: isOwn
+                    ? 'var(--qc-bubble-sent)'
+                    : 'var(--qc-bubble-received)',
+                  color: isOwn
+                    ? 'var(--qc-bubble-sent-text)'
+                    : 'var(--qc-bubble-received-text)',
+                }
+          }
         >
           {message.type === 'TEXT' && (
             <p className="whitespace-pre-wrap break-words">{message.content}</p>
@@ -100,7 +107,17 @@ export function MessageBubble({ message, isOwn, showAvatar }: MessageBubbleProps
               className="max-w-full rounded-lg"
             />
           )}
-          {message.type !== 'TEXT' && message.type !== 'IMAGE' && (
+          {message.type === 'GIF' && message.mediaUrl && (
+            <img
+              src={message.mediaUrl}
+              alt="GIF"
+              className="max-w-[250px] rounded-lg"
+            />
+          )}
+          {message.type === 'STICKER' && (
+            <span className="text-5xl leading-none">{message.content}</span>
+          )}
+          {!['TEXT', 'IMAGE', 'GIF', 'STICKER'].includes(message.type) && (
             <p className="italic">
               {message.type.toLowerCase()}{' '}
               {message.content && `— ${message.content}`}
