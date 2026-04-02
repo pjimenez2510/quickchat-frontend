@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Search, LogOut, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
@@ -16,9 +16,11 @@ import type { Conversation } from '@/types/conversation';
 
 export function Sidebar() {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, clearAuth } = useAuthStore();
-  const { conversations, setConversations, activeConversationId, setActiveConversation } =
+  const { conversations, setConversations } =
     useChatStore();
+  const activeConversationId = pathname?.startsWith('/chat/') ? pathname.split('/chat/')[1] : null;
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<
     { id: string; username: string; displayName: string; avatarUrl: string | null; isOnline: boolean }[]
