@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { Mic, Square, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 interface VoiceRecorderProps {
@@ -96,38 +97,39 @@ export function VoiceRecorder({ onVoiceReady, isUploading }: VoiceRecorderProps)
 
   if (isUploading) {
     return (
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center">
-        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-      </div>
+      <Button size="icon" variant="ghost" disabled className="h-10 w-10 shrink-0">
+        <Loader2 className="h-4 w-4 animate-spin" />
+      </Button>
     );
   }
 
   if (isRecording) {
     return (
       <div className="flex items-center gap-2">
-        <span className="flex items-center gap-1.5 text-sm font-medium" style={{ color: 'var(--qc-error)' }}>
-          <span className="h-2 w-2 rounded-full animate-pulse" style={{ backgroundColor: 'var(--qc-error)' }} />
+        <span className="flex items-center gap-1.5 text-sm text-destructive font-medium">
+          <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
           {formatDuration(duration)}
         </span>
-        <button
-          type="button"
+        <Button
+          size="icon"
+          variant="destructive"
+          className="h-10 w-10 shrink-0 rounded-full"
           onClick={stopRecording}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white transition-colors"
-          style={{ backgroundColor: 'var(--qc-error)' }}
         >
           <Square className="h-4 w-4" />
-        </button>
+        </Button>
       </div>
     );
   }
 
   return (
-    <button
-      type="button"
+    <Button
+      size="icon"
+      variant="ghost"
+      className="h-10 w-10 shrink-0 text-muted-foreground hover:text-foreground"
       onClick={startRecording}
-      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
     >
       <Mic className="h-5 w-5" />
-    </button>
+    </Button>
   );
 }
