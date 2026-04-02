@@ -15,6 +15,7 @@ interface ChatState {
   prependMessages: (conversationId: string, messages: Message[]) => void;
   updateConversationLastMessage: (conversationId: string, message: Message) => void;
   setTyping: (conversationId: string, userId: string, isTyping: boolean) => void;
+  updateUserOnlineStatus: (userId: string, isOnline: boolean, lastSeenAt: string) => void;
 }
 
 export const useChatStore = create<ChatState>((set) => ({
@@ -88,4 +89,20 @@ export const useChatStore = create<ChatState>((set) => ({
       }
       return { typingUsers: newTyping };
     }),
+
+  updateUserOnlineStatus: (userId, isOnline, lastSeenAt) =>
+    set((state) => ({
+      conversations: state.conversations.map((c) =>
+        c.otherUser.id === userId
+          ? {
+              ...c,
+              otherUser: {
+                ...c.otherUser,
+                isOnline,
+                lastSeenAt,
+              },
+            }
+          : c,
+      ),
+    })),
 }));

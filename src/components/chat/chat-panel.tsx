@@ -68,12 +68,24 @@ export function ChatPanel() {
         .setTyping(data.conversationId, data.userId, data.isTyping);
     };
 
+    const handleUserOnline = (data: {
+      userId: string;
+      isOnline: boolean;
+      lastSeenAt: string;
+    }) => {
+      useChatStore
+        .getState()
+        .updateUserOnlineStatus(data.userId, data.isOnline, data.lastSeenAt);
+    };
+
     socket.on('message:new', handleNewMessage);
     socket.on('user:typing', handleTyping);
+    socket.on('user:online', handleUserOnline);
 
     return () => {
       socket.off('message:new', handleNewMessage);
       socket.off('user:typing', handleTyping);
+      socket.off('user:online', handleUserOnline);
     };
   }, [socket, addMessage, updateConversationLastMessage]);
 
