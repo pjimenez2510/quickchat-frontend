@@ -84,14 +84,33 @@ export function SocketConnector({ children }: { children: React.ReactNode }) {
         .setTyping(data.conversationId, data.userId, data.isTyping);
     };
 
+    const handleDelivered = (data: {
+      messageId: string;
+      conversationId: string;
+    }) => {
+      useChatStore.getState().markMessageDelivered(data.conversationId, data.messageId);
+    };
+
+    const handleRead = (data: {
+      conversationId: string;
+      userId: string;
+    }) => {
+      // When the other user reads our messages, mark them as read
+      useChatStore.getState().markConversationRead(data.conversationId);
+    };
+
     socket.on('user:online', handleUserOnline);
     socket.on('message:new', handleNewMessage);
     socket.on('user:typing', handleTyping);
+    socket.on('message:delivered', handleDelivered);
+    socket.on('message:read', handleRead);
 
     return () => {
       socket.off('user:online', handleUserOnline);
       socket.off('message:new', handleNewMessage);
       socket.off('user:typing', handleTyping);
+      socket.off('message:delivered', handleDelivered);
+      socket.off('message:read', handleRead);
     };
   }, [socket]);
 

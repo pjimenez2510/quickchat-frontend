@@ -1,6 +1,7 @@
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { MessageStatus } from './message-status';
 import type { Message } from '@/types/message';
 import { formatMessageTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -159,6 +160,7 @@ export function MessageBubble({ message, isOwn, showAvatar }: MessageBubbleProps
           {message.isEdited && (
             <span className="text-[11px] text-muted-foreground">(edited)</span>
           )}
+          {isOwn && <MessageStatus status={message.status} />}
         </div>
       </div>
     </div>

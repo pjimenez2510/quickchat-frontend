@@ -7,6 +7,7 @@ export interface Message {
   isEdited: boolean;
   isPinned: boolean;
   deletedForAll: boolean;
+  status: 'sent' | 'delivered' | 'read';
   createdAt: string;
   sender: {
     id: string;

@@ -52,6 +52,12 @@ export function ChatPanel() {
       .catch(() => {});
   }, [activeConversationId, conversations, setConversations]);
 
+  // Emit read receipt when opening a conversation
+  useEffect(() => {
+    if (!activeConversationId || !socket) return;
+    socket.emit('message:read', { conversationId: activeConversationId });
+  }, [activeConversationId, socket]);
+
   // Load messages when conversation changes
   useEffect(() => {
     if (!activeConversationId) return;
