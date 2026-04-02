@@ -4,6 +4,7 @@ import { useEffect, useCallback } from 'react';
 import { ChatHeader } from './chat-header';
 import { MessageList } from './message-list';
 import { MessageInput } from './message-input';
+import { ReplyBar } from './reply-bar';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth-store';
 import { useChatStore } from '@/stores/chat-store';
@@ -20,6 +21,8 @@ export function ChatPanel() {
     typingUsers,
     setMessages,
     setConversations,
+    replyToMessage,
+    setReplyTo,
   } = useChatStore();
 
   const { socket, isConnected } = useSocketContext();
@@ -88,9 +91,12 @@ export function ChatPanel() {
         content,
         type: type ?? 'TEXT',
         mediaUrl,
+        replyToId: replyToMessage?.id,
       });
+
+      setReplyTo(null);
     },
-    [socket, activeConversationId],
+    [socket, activeConversationId, replyToMessage, setReplyTo],
   );
 
   const handleTypingStart = useCallback(() => {
@@ -126,6 +132,10 @@ export function ChatPanel() {
       />
 
       <MessageList messages={currentMessages} currentUserId={user?.id ?? ''} />
+
+      {replyToMessage && (
+        <ReplyBar message={replyToMessage} onCancel={() => setReplyTo(null)} />
+      )}
 
       <MessageInput
         onSend={handleSend}

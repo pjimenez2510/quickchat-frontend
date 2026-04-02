@@ -10,9 +10,10 @@ interface MessageBubbleProps {
   message: Message;
   isOwn: boolean;
   showAvatar: boolean;
+  onContextMenu: (e: React.MouseEvent) => void;
 }
 
-export function MessageBubble({ message, isOwn, showAvatar }: MessageBubbleProps) {
+export function MessageBubble({ message, isOwn, showAvatar, onContextMenu }: MessageBubbleProps) {
   if (message.deletedForAll) {
     return (
       <div className={cn('flex mb-2', isOwn ? 'justify-end' : 'justify-start')}>
@@ -37,6 +38,7 @@ export function MessageBubble({ message, isOwn, showAvatar }: MessageBubbleProps
         isOwn ? 'flex-row-reverse' : 'flex-row',
         showAvatar && !isOwn && 'mt-3',
       )}
+      onContextMenu={onContextMenu}
     >
       {/* Avatar column - only for received messages */}
       {!isOwn && (
@@ -146,6 +148,25 @@ export function MessageBubble({ message, isOwn, showAvatar }: MessageBubbleProps
             <p className="italic">{message.content}</p>
           )}
         </div>
+
+        {/* Reactions */}
+        {message.reactions && message.reactions.length > 0 && (
+          <div className={cn('flex flex-wrap gap-1 mt-1 px-1', isOwn ? 'justify-end' : 'justify-start')}>
+            {Object.entries(
+              message.reactions.reduce<Record<string, number>>((acc, r) => {
+                acc[r.emoji] = (acc[r.emoji] ?? 0) + 1;
+                return acc;
+              }, {}),
+            ).map(([emoji, count]) => (
+              <span
+                key={emoji}
+                className="inline-flex items-center gap-0.5 rounded-full bg-accent px-1.5 py-0.5 text-xs"
+              >
+                {emoji} {count > 1 && <span className="text-muted-foreground">{count}</span>}
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Timestamp + edited */}
         <div

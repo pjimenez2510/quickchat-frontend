@@ -1,7 +1,11 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { toast } from 'sonner';
 import { MessageBubble } from './message-bubble';
+import { ContextMenu } from './context-menu';
+import { useSocketContext } from '@/components/providers/socket-provider';
+import { useChatStore } from '@/stores/chat-store';
 import type { Message } from '@/types/message';
 
 interface MessageListProps {
@@ -13,8 +17,13 @@ export function MessageList({ messages, currentUserId }: MessageListProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const prevLengthRef = useRef(0);
+  const { socket } = useSocketContext();
 
-  // Auto-scroll to bottom on new messages
+  const [contextMenu, setContextMenu] = useState<{
+    message: Message;
+    position: { x: number; y: number };
+  } | null>(null);
+
   useEffect(() => {
     if (messages.length > prevLengthRef.current) {
       bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -22,12 +31,86 @@ export function MessageList({ messages, currentUserId }: MessageListProps) {
     prevLengthRef.current = messages.length;
   }, [messages.length]);
 
-  // Scroll to bottom on first load
   useEffect(() => {
     if (messages.length > 0 && prevLengthRef.current === 0) {
       bottomRef.current?.scrollIntoView({ behavior: 'instant' });
     }
   }, [messages]);
+
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent, message: Message) => {
+      e.preventDefault();
+      setContextMenu({ message, position: { x: e.clientX, y: e.clientY } });
+    },
+    [],
+  );
+
+  const handleReply = useCallback(() => {
+    if (contextMenu) {
+      useChatStore.getState().setReplyTo(contextMenu.message);
+    }
+  }, [contextMenu]);
+
+  const handleEdit = useCallback(() => {
+    if (!contextMenu || !socket) return;
+    const newContent = prompt('Edit message:', contextMenu.message.content ?? '');
+    if (newContent && newContent !== contextMenu.message.content) {
+      socket.emit('message:edit', {
+        messageId: contextMenu.message.id,
+        content: newContent,
+      });
+    }
+  }, [contextMenu, socket]);
+
+  const handleDeleteForMe = useCallback(() => {
+    if (!contextMenu || !socket) return;
+    socket.emit('message:delete', {
+      messageId: contextMenu.message.id,
+      deleteForAll: false,
+    });
+    useChatStore
+      .getState()
+      .removeMessage(contextMenu.message.conversationId, contextMenu.message.id);
+    toast.success('Message deleted for you');
+  }, [contextMenu, socket]);
+
+  const handleDeleteForAll = useCallback(() => {
+    if (!contextMenu || !socket) return;
+    socket.emit('message:delete', {
+      messageId: contextMenu.message.id,
+      deleteForAll: true,
+    });
+  }, [contextMenu, socket]);
+
+  const handlePin = useCallback(() => {
+    if (!contextMenu) return;
+    const { id } = contextMenu.message;
+    fetch(`${process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3002'}/messages/${id}/pin`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+      },
+    }).then(() => {
+      toast.success(contextMenu.message.isPinned ? 'Message unpinned' : 'Message pinned');
+    });
+  }, [contextMenu]);
+
+  const handleReact = useCallback(
+    (emoji: string) => {
+      if (!contextMenu || !socket) return;
+      socket.emit('message:reaction', {
+        messageId: contextMenu.message.id,
+        emoji,
+      });
+    },
+    [contextMenu, socket],
+  );
+
+  const handleCopy = useCallback(() => {
+    if (!contextMenu?.message.content) return;
+    navigator.clipboard.writeText(contextMenu.message.content);
+    toast.success('Copied to clipboard');
+  }, [contextMenu]);
 
   if (messages.length === 0) {
     return (
@@ -58,12 +141,29 @@ export function MessageList({ messages, currentUserId }: MessageListProps) {
                 message={msg}
                 isOwn={isOwn}
                 showAvatar={showAvatar}
+                onContextMenu={(e) => handleContextMenu(e, msg)}
               />
             );
           })}
         </div>
         <div ref={bottomRef} />
       </div>
+
+      {contextMenu && (
+        <ContextMenu
+          message={contextMenu.message}
+          isOwn={contextMenu.message.sender.id === currentUserId}
+          position={contextMenu.position}
+          onClose={() => setContextMenu(null)}
+          onReply={handleReply}
+          onEdit={handleEdit}
+          onDeleteForMe={handleDeleteForMe}
+          onDeleteForAll={handleDeleteForAll}
+          onPin={handlePin}
+          onReact={handleReact}
+          onCopy={handleCopy}
+        />
+      )}
     </div>
   );
 }

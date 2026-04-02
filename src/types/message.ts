@@ -21,4 +21,9 @@ export interface Message {
     senderId: string;
     type: string;
   } | null;
+  reactions?: {
+    emoji: string;
+    userId: string;
+    username: string;
+  }[];
 }
