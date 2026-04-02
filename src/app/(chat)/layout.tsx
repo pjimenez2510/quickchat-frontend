@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth-store';
 import { SocketProvider } from '@/components/providers/socket-provider';
 import { SocketConnector } from '@/components/providers/socket-connector';
+import { Sidebar } from '@/components/sidebar/sidebar';
 import { api } from '@/lib/api';
 import type { User } from '@/types/user';
 
@@ -61,7 +62,14 @@ export default function ChatLayout({
 
   return (
     <SocketProvider>
-      <SocketConnector>{children}</SocketConnector>
+      <SocketConnector>
+        <div className="flex h-screen overflow-hidden">
+          <div className="hidden w-[360px] shrink-0 md:block">
+            <Sidebar />
+          </div>
+          {children}
+        </div>
+      </SocketConnector>
     </SocketProvider>
   );
 }

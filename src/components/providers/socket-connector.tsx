@@ -4,7 +4,9 @@ import { useEffect, useRef } from 'react';
 import { useSocketContext } from './socket-provider';
 import { useAuthStore } from '@/stores/auth-store';
 import { useChatStore } from '@/stores/chat-store';
+import { api } from '@/lib/api';
 import type { Message } from '@/types/message';
+import type { Conversation } from '@/types/conversation';
 
 export function SocketConnector({ children }: { children: React.ReactNode }) {
   const { socket, connect, disconnect } = useSocketContext();
@@ -43,14 +45,33 @@ export function SocketConnector({ children }: { children: React.ReactNode }) {
         .updateUserOnlineStatus(data.userId, data.isOnline, data.lastSeenAt);
     };
 
-    const handleNewMessage = (data: {
+    const handleNewMessage = async (data: {
       conversationId: string;
       message: Message;
     }) => {
-      useChatStore.getState().addMessage(data.conversationId, data.message);
-      useChatStore
-        .getState()
-        .updateConversationLastMessage(data.conversationId, data.message);
+      const store = useChatStore.getState();
+      store.addMessage(data.conversationId, data.message);
+
+      // Check if conversation exists in store
+      const exists = store.conversations.find(
+        (c) => c.id === data.conversationId,
+      );
+
+      if (exists) {
+        store.updateConversationLastMessage(data.conversationId, data.message);
+      } else {
+        // New conversation — fetch it from API and add to store
+        try {
+          const res = await api.get<Conversation>(
+            `/conversations/${data.conversationId}`,
+          );
+          useChatStore.setState((state) => ({
+            conversations: [res.data, ...state.conversations],
+          }));
+        } catch {
+          // Silently fail — conversation will appear on next reload
+        }
+      }
     };
 
     const handleTyping = (data: {

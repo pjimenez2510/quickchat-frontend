@@ -58,9 +58,7 @@ export function Sidebar() {
       const res = await api.post<Conversation>('/conversations', {
         otherUserId,
       });
-      setActiveConversation(res.data.id);
 
-      // Add to conversations if not exists
       const exists = conversations.find((c) => c.id === res.data.id);
       if (!exists) {
         setConversations([res.data, ...conversations]);
@@ -68,6 +66,7 @@ export function Sidebar() {
 
       setSearchQuery('');
       setSearchResults([]);
+      router.push(`/chat/${res.data.id}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to start conversation');
     }
@@ -161,7 +160,7 @@ export function Sidebar() {
                   conversation={conv}
                   isActive={conv.id === activeConversationId}
                   currentUserId={user?.id ?? ''}
-                  onClick={() => setActiveConversation(conv.id)}
+                  onClick={() => router.push(`/chat/${conv.id}`)}
                 />
               ))
             )}
