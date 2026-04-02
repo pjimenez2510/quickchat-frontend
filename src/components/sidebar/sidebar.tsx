@@ -53,10 +53,11 @@ export function Sidebar() {
         otherUserId,
       });
 
-      const exists = conversations.find((c) => c.id === res.data.id);
-      if (!exists) {
-        setConversations([res.data, ...conversations]);
-      }
+      useChatStore.setState((state) => {
+        const exists = state.conversations.find((c) => c.id === res.data.id);
+        if (exists) return state;
+        return { conversations: [res.data, ...state.conversations] };
+      });
 
       setSearchQuery('');
       setSearchResults([]);

@@ -37,20 +37,26 @@ export function ChatPanel() {
       )
     : [];
 
-  // Load conversation if not in store (e.g., direct URL access)
+  // Load conversation if not in store (e.g., direct URL access after reload)
   useEffect(() => {
     if (!activeConversationId) return;
 
-    const exists = conversations.find((c) => c.id === activeConversationId);
+    const exists = useChatStore.getState().conversations.find(
+      (c) => c.id === activeConversationId,
+    );
     if (exists) return;
 
     api
       .get<Conversation>(`/conversations/${activeConversationId}`)
       .then((res) => {
-        setConversations([res.data, ...conversations]);
+        useChatStore.setState((state) => {
+          const alreadyExists = state.conversations.find((c) => c.id === res.data.id);
+          if (alreadyExists) return state;
+          return { conversations: [res.data, ...state.conversations] };
+        });
       })
       .catch(() => {});
-  }, [activeConversationId, conversations, setConversations]);
+  }, [activeConversationId]);
 
   // Emit read receipt when opening a conversation
   useEffect(() => {
@@ -62,16 +68,16 @@ export function ChatPanel() {
   useEffect(() => {
     if (!activeConversationId) return;
 
-    const cached = messagesMap.get(activeConversationId);
+    const cached = useChatStore.getState().messages.get(activeConversationId);
     if (cached && cached.length > 0) return;
 
     api
       .get<Message[]>(`/messages/conversation/${activeConversationId}`)
       .then((res) => {
-        setMessages(activeConversationId, res.data.reverse());
+        useChatStore.getState().setMessages(activeConversationId, res.data.reverse());
       })
       .catch(() => {});
-  }, [activeConversationId, messagesMap, setMessages]);
+  }, [activeConversationId]);
 
   const handleSend = useCallback(
     (content: string, type?: string, mediaUrl?: string) => {
