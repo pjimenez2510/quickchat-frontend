@@ -17,7 +17,7 @@ interface ChatState {
   setTyping: (conversationId: string, userId: string, isTyping: boolean) => void;
   updateUserOnlineStatus: (userId: string, isOnline: boolean, lastSeenAt: string) => void;
   markMessageDelivered: (conversationId: string, messageId: string) => void;
-  markConversationRead: (conversationId: string) => void;
+  markConversationRead: (conversationId: string, senderId: string) => void;
 }
 
 export const useChatStore = create<ChatState>((set) => ({
@@ -125,7 +125,7 @@ export const useChatStore = create<ChatState>((set) => ({
       return { messages: newMessages };
     }),
 
-  markConversationRead: (conversationId) =>
+  markConversationRead: (conversationId, senderId) =>
     set((state) => {
       const newMessages = new Map(state.messages);
       const msgs = newMessages.get(conversationId);
@@ -133,7 +133,9 @@ export const useChatStore = create<ChatState>((set) => ({
         newMessages.set(
           conversationId,
           msgs.map((m) =>
-            m.status !== 'read' ? { ...m, status: 'read' as const } : m,
+            m.sender.id === senderId && m.status !== 'read'
+              ? { ...m, status: 'read' as const }
+              : m,
           ),
         );
       }

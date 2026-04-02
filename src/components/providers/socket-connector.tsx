@@ -107,8 +107,11 @@ export function SocketConnector({ children }: { children: React.ReactNode }) {
       conversationId: string;
       userId: string;
     }) => {
-      // When the other user reads our messages, mark them as read
-      useChatStore.getState().markConversationRead(data.conversationId);
+      const currentUserId = useAuthStore.getState().user?.id;
+      // Only update when the OTHER user read our messages (not when we read theirs)
+      if (data.userId !== currentUserId) {
+        useChatStore.getState().markConversationRead(data.conversationId, currentUserId ?? '');
+      }
     };
 
     socket.on('user:online', handleUserOnline);
