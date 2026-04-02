@@ -1,0 +1,72 @@
+'use client';
+
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { formatRelativeTime } from '@/lib/format';
+
+interface ChatHeaderProps {
+  displayName: string;
+  username: string;
+  avatarUrl: string | null;
+  isOnline: boolean;
+  lastSeenAt: string | null;
+  isTyping: boolean;
+}
+
+export function ChatHeader({
+  displayName,
+  username,
+  avatarUrl,
+  isOnline,
+  lastSeenAt,
+  isTyping,
+}: ChatHeaderProps) {
+  const initials = displayName
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
+  const statusText = isTyping
+    ? 'Typing...'
+    : isOnline
+      ? 'Online'
+      : lastSeenAt
+        ? `Last seen ${formatRelativeTime(lastSeenAt)}`
+        : 'Offline';
+
+  return (
+    <div className="flex items-center gap-3 border-b border-border bg-background px-4 py-3">
+      <div className="relative">
+        <Avatar className="h-10 w-10">
+          <AvatarImage src={avatarUrl ?? undefined} />
+          <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
+            {initials}
+          </AvatarFallback>
+        </Avatar>
+        {isOnline && (
+          <span
+            className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background"
+            style={{ backgroundColor: 'var(--qc-online)' }}
+          />
+        )}
+      </div>
+
+      <div>
+        <h2 className="text-sm font-semibold leading-tight">{displayName}</h2>
+        <p
+          className="text-xs leading-tight"
+          style={{
+            color: isTyping
+              ? 'var(--qc-bubble-sent)'
+              : isOnline
+                ? 'var(--qc-online)'
+                : 'var(--muted-foreground)',
+          }}
+        >
+          {statusText}
+        </p>
+      </div>
+    </div>
+  );
+}
