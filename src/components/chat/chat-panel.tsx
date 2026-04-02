@@ -10,7 +10,6 @@ import { useAuthStore } from '@/stores/auth-store';
 import { useChatStore } from '@/stores/chat-store';
 import { useSocketContext } from '@/components/providers/socket-provider';
 import type { Message } from '@/types/message';
-import type { Conversation } from '@/types/conversation';
 
 export function ChatPanel() {
   const user = useAuthStore((s) => s.user);
@@ -20,11 +19,9 @@ export function ChatPanel() {
     messages: messagesMap,
     typingUsers,
     setMessages,
-    addMessage,
-    updateConversationLastMessage,
   } = useChatStore();
 
-  const { socket, isConnected, connect } = useSocketContext();
+  const { socket, isConnected } = useSocketContext();
 
   const conversation = conversations.find(
     (c) => c.id === activeConversationId,
@@ -37,57 +34,6 @@ export function ChatPanel() {
         (uid) => uid !== user?.id,
       )
     : [];
-
-  // Connect WebSocket on mount
-  useEffect(() => {
-    if (!isConnected && user) {
-      const token = localStorage.getItem('accessToken');
-      if (token) connect(token);
-    }
-  }, [isConnected, user, connect]);
-
-  // Listen for new messages
-  useEffect(() => {
-    if (!socket) return;
-
-    const handleNewMessage = (data: {
-      conversationId: string;
-      message: Message;
-    }) => {
-      addMessage(data.conversationId, data.message);
-      updateConversationLastMessage(data.conversationId, data.message);
-    };
-
-    const handleTyping = (data: {
-      conversationId: string;
-      userId: string;
-      isTyping: boolean;
-    }) => {
-      useChatStore
-        .getState()
-        .setTyping(data.conversationId, data.userId, data.isTyping);
-    };
-
-    const handleUserOnline = (data: {
-      userId: string;
-      isOnline: boolean;
-      lastSeenAt: string;
-    }) => {
-      useChatStore
-        .getState()
-        .updateUserOnlineStatus(data.userId, data.isOnline, data.lastSeenAt);
-    };
-
-    socket.on('message:new', handleNewMessage);
-    socket.on('user:typing', handleTyping);
-    socket.on('user:online', handleUserOnline);
-
-    return () => {
-      socket.off('message:new', handleNewMessage);
-      socket.off('user:typing', handleTyping);
-      socket.off('user:online', handleUserOnline);
-    };
-  }, [socket, addMessage, updateConversationLastMessage]);
 
   // Load messages when conversation changes
   useEffect(() => {
