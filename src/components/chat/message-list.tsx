@@ -92,14 +92,17 @@ export function MessageList({ messages, currentUserId }: MessageListProps) {
 
   const handlePin = useCallback(() => {
     if (!contextMenu) return;
-    const { id } = contextMenu.message;
-    fetch(`${process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3002'}/messages/${id}/pin`, {
+    const msg = contextMenu.message;
+    fetch(`${process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3002'}/messages/${msg.id}/pin`, {
       method: 'PATCH',
       headers: {
         Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
       },
     }).then(() => {
-      toast.success(contextMenu.message.isPinned ? 'Message unpinned' : 'Message pinned');
+      useChatStore.getState().updateMessage(msg.conversationId, msg.id, {
+        isPinned: !msg.isPinned,
+      });
+      toast.success(msg.isPinned ? 'Message unpinned' : 'Message pinned');
     });
   }, [contextMenu]);
 

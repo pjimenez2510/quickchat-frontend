@@ -1,5 +1,6 @@
 'use client';
 
+import { Pin } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { MessageStatus } from './message-status';
 import type { Message } from '@/types/message';
@@ -60,6 +61,14 @@ export function MessageBubble({ message, isOwn, showAvatar, onContextMenu }: Mes
           <p className="text-xs font-medium text-muted-foreground mb-1 ml-1">
             {message.sender.displayName}
           </p>
+        )}
+
+        {/* Pinned indicator */}
+        {message.isPinned && (
+          <div className={cn('flex items-center gap-1 mb-1 px-1', isOwn ? 'justify-end' : 'justify-start')}>
+            <Pin className="h-3 w-3 text-muted-foreground" />
+            <span className="text-[11px] text-muted-foreground">Pinned</span>
+          </div>
         )}
 
         {/* Reply reference */}
