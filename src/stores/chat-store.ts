@@ -38,6 +38,7 @@ export const useChatStore = create<ChatState>((set) => ({
     set((state) => {
       const newMessages = new Map(state.messages);
       const existing = newMessages.get(conversationId) ?? [];
+      if (existing.some((m) => m.id === message.id)) return state;
       newMessages.set(conversationId, [...existing, message]);
       return { messages: newMessages };
     }),
