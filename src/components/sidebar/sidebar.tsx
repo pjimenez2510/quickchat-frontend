@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Search, LogOut, MessageCircle } from 'lucide-react';
+import { Search, LogOut, MessageCircle, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -88,9 +88,14 @@ export function Sidebar() {
           <MessageCircle className="h-6 w-6 text-primary" />
           <h1 className="text-xl font-bold">Chats</h1>
         </div>
-        <Button variant="ghost" size="icon" onClick={handleLogout} title="Sign out">
-          <LogOut className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" onClick={() => router.push('/settings/profile')} title="Edit profile">
+            <User className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={handleLogout} title="Sign out">
+            <LogOut className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Search */}
