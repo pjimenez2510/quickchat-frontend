@@ -11,23 +11,30 @@ import type { Conversation } from '@/types/conversation';
 export function SocketConnector({ children }: { children: React.ReactNode }) {
   const { socket, connect, disconnect } = useSocketContext();
   const user = useAuthStore((s) => s.user);
-  const hasConnected = useRef(false);
+  const hasInitialized = useRef(false);
 
-  // Connect socket once when user is available
+  // Load conversations and connect socket once
   useEffect(() => {
-    if (hasConnected.current || !user) return;
+    if (hasInitialized.current || !user) return;
+    hasInitialized.current = true;
 
+    // Load conversations once
+    api
+      .get<Conversation[]>('/conversations')
+      .then((res) => {
+        useChatStore.getState().setConversations(res.data);
+      })
+      .catch(() => {});
+
+    // Connect socket
     const token = localStorage.getItem('accessToken');
     if (token) {
       connect(token);
-      hasConnected.current = true;
     }
 
     return () => {
-      if (hasConnected.current) {
-        disconnect();
-        hasConnected.current = false;
-      }
+      disconnect();
+      hasInitialized.current = false;
     };
   }, [user, connect, disconnect]);
 

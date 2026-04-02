@@ -18,21 +18,13 @@ export function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const { user, clearAuth } = useAuthStore();
-  const { conversations, setConversations } =
-    useChatStore();
+  const { conversations, setConversations } = useChatStore();
   const activeConversationId = pathname?.startsWith('/chat/') ? pathname.split('/chat/')[1] : null;
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<
     { id: string; username: string; displayName: string; avatarUrl: string | null; isOnline: boolean }[]
   >([]);
   const [isSearching, setIsSearching] = useState(false);
-
-  useEffect(() => {
-    api
-      .get<Conversation[]>('/conversations')
-      .then((res) => setConversations(res.data))
-      .catch(() => {});
-  }, [setConversations]);
 
   useEffect(() => {
     if (!searchQuery.trim()) {
