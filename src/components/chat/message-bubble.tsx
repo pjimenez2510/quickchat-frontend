@@ -117,11 +117,32 @@ export function MessageBubble({ message, isOwn, showAvatar }: MessageBubbleProps
           {message.type === 'STICKER' && (
             <span className="text-5xl leading-none">{message.content}</span>
           )}
-          {!['TEXT', 'IMAGE', 'GIF', 'STICKER'].includes(message.type) && (
-            <p className="italic">
-              {message.type.toLowerCase()}{' '}
-              {message.content && `— ${message.content}`}
-            </p>
+          {message.type === 'VIDEO' && message.mediaUrl && (
+            <video
+              src={message.mediaUrl}
+              controls
+              className="max-w-[300px] rounded-lg"
+              preload="metadata"
+            />
+          )}
+          {(message.type === 'AUDIO' || message.type === 'VOICE') && message.mediaUrl && (
+            <audio src={message.mediaUrl} controls className="max-w-[250px]" preload="metadata" />
+          )}
+          {message.type === 'FILE' && message.mediaUrl && (
+            <a
+              href={message.mediaUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                'flex items-center gap-2 underline',
+                isOwn ? 'text-white/90' : 'text-primary',
+              )}
+            >
+              📎 {message.content ?? 'File'}
+            </a>
+          )}
+          {!['TEXT', 'IMAGE', 'GIF', 'STICKER', 'VIDEO', 'AUDIO', 'VOICE', 'FILE'].includes(message.type) && (
+            <p className="italic">{message.content}</p>
           )}
         </div>
 
