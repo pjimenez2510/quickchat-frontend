@@ -18,6 +18,10 @@ interface ChatState {
   updateUserOnlineStatus: (userId: string, isOnline: boolean, lastSeenAt: string) => void;
   markMessageDelivered: (conversationId: string, messageId: string) => void;
   markConversationRead: (conversationId: string, senderId: string) => void;
+  updateMessage: (conversationId: string, messageId: string, updates: Partial<Message>) => void;
+  removeMessage: (conversationId: string, messageId: string) => void;
+  replyToMessage: Message | null;
+  setReplyTo: (message: Message | null) => void;
 }
 
 export const useChatStore = create<ChatState>((set) => ({
@@ -120,6 +124,36 @@ export const useChatStore = create<ChatState>((set) => ({
               ? { ...m, status: 'delivered' as const }
               : m,
           ),
+        );
+      }
+      return { messages: newMessages };
+    }),
+
+  replyToMessage: null,
+
+  setReplyTo: (message) => set({ replyToMessage: message }),
+
+  updateMessage: (conversationId, messageId, updates) =>
+    set((state) => {
+      const newMessages = new Map(state.messages);
+      const msgs = newMessages.get(conversationId);
+      if (msgs) {
+        newMessages.set(
+          conversationId,
+          msgs.map((m) => (m.id === messageId ? { ...m, ...updates } : m)),
+        );
+      }
+      return { messages: newMessages };
+    }),
+
+  removeMessage: (conversationId, messageId) =>
+    set((state) => {
+      const newMessages = new Map(state.messages);
+      const msgs = newMessages.get(conversationId);
+      if (msgs) {
+        newMessages.set(
+          conversationId,
+          msgs.filter((m) => m.id !== messageId),
         );
       }
       return { messages: newMessages };

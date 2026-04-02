@@ -114,11 +114,54 @@ export function SocketConnector({ children }: { children: React.ReactNode }) {
       }
     };
 
+    const handleUpdated = (data: {
+      messageId: string;
+      content: string;
+      isEdited: boolean;
+    }) => {
+      const store = useChatStore.getState();
+      for (const [convId, msgs] of store.messages) {
+        if (msgs.some((m) => m.id === data.messageId)) {
+          store.updateMessage(convId, data.messageId, {
+            content: data.content,
+            isEdited: data.isEdited,
+          });
+          break;
+        }
+      }
+    };
+
+    const handleDeleted = (data: {
+      messageId: string;
+      conversationId: string;
+      deletedForAll: boolean;
+    }) => {
+      if (data.deletedForAll) {
+        useChatStore.getState().updateMessage(data.conversationId, data.messageId, {
+          deletedForAll: true,
+          content: null,
+        });
+      }
+    };
+
+    const handleReaction = (data: {
+      messageId: string;
+      conversationId: string;
+      reactions: { emoji: string; userId: string; username: string }[];
+    }) => {
+      useChatStore.getState().updateMessage(data.conversationId, data.messageId, {
+        reactions: data.reactions,
+      });
+    };
+
     socket.on('user:online', handleUserOnline);
     socket.on('message:new', handleNewMessage);
     socket.on('user:typing', handleTyping);
     socket.on('message:delivered', handleDelivered);
     socket.on('message:read', handleRead);
+    socket.on('message:updated', handleUpdated);
+    socket.on('message:deleted', handleDeleted);
+    socket.on('message:reaction', handleReaction);
 
     return () => {
       socket.off('user:online', handleUserOnline);
@@ -126,6 +169,9 @@ export function SocketConnector({ children }: { children: React.ReactNode }) {
       socket.off('user:typing', handleTyping);
       socket.off('message:delivered', handleDelivered);
       socket.off('message:read', handleRead);
+      socket.off('message:updated', handleUpdated);
+      socket.off('message:deleted', handleDeleted);
+      socket.off('message:reaction', handleReaction);
     };
   }, [socket]);
 

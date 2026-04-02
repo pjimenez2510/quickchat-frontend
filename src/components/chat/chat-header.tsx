@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Pin } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatRelativeTime } from '@/lib/format';
 
@@ -12,6 +12,8 @@ interface ChatHeaderProps {
   isOnline: boolean;
   lastSeenAt: string | null;
   isTyping: boolean;
+  onTogglePinned: () => void;
+  showPinned: boolean;
 }
 
 export function ChatHeader({
@@ -20,6 +22,8 @@ export function ChatHeader({
   isOnline,
   lastSeenAt,
   isTyping,
+  onTogglePinned,
+  showPinned,
 }: ChatHeaderProps) {
   const router = useRouter();
 
@@ -63,7 +67,7 @@ export function ChatHeader({
         )}
       </div>
 
-      <div>
+      <div className="flex-1">
         <h2 className="text-sm font-semibold leading-tight">{displayName}</h2>
         <p
           className="text-xs leading-tight"
@@ -78,6 +82,17 @@ export function ChatHeader({
           {statusText}
         </p>
       </div>
+
+      {/* Pinned messages toggle */}
+      <button
+        onClick={onTogglePinned}
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors ${
+          showPinned ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-accent'
+        }`}
+        title="Pinned messages"
+      >
+        <Pin className="h-4 w-4" />
+      </button>
     </div>
   );
 }

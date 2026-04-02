@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState, useRef } from 'react';
 import { ChatHeader } from './chat-header';
-import { MessageList } from './message-list';
+import { MessageList, type MessageListHandle } from './message-list';
 import { MessageInput } from './message-input';
+import { ReplyBar } from './reply-bar';
+import { PinnedMessagesPanel } from './pinned-messages-panel';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth-store';
 import { useChatStore } from '@/stores/chat-store';
@@ -20,6 +22,8 @@ export function ChatPanel() {
     typingUsers,
     setMessages,
     setConversations,
+    replyToMessage,
+    setReplyTo,
   } = useChatStore();
 
   const { socket, isConnected } = useSocketContext();
@@ -88,9 +92,12 @@ export function ChatPanel() {
         content,
         type: type ?? 'TEXT',
         mediaUrl,
+        replyToId: replyToMessage?.id,
       });
+
+      setReplyTo(null);
     },
-    [socket, activeConversationId],
+    [socket, activeConversationId, replyToMessage, setReplyTo],
   );
 
   const handleTypingStart = useCallback(() => {
@@ -102,6 +109,9 @@ export function ChatPanel() {
     if (!socket || !activeConversationId) return;
     socket.emit('typing:stop', { conversationId: activeConversationId });
   }, [socket, activeConversationId]);
+
+  const [showPinned, setShowPinned] = useState(false);
+  const messageListRef = useRef<MessageListHandle>(null);
 
   // Re-read conversation after it might have been added
   conversation = conversations.find((c) => c.id === activeConversationId);
@@ -123,9 +133,23 @@ export function ChatPanel() {
         isOnline={conversation.otherUser.isOnline}
         lastSeenAt={conversation.otherUser.lastSeenAt}
         isTyping={typingInConversation.length > 0}
+        onTogglePinned={() => setShowPinned(!showPinned)}
+        showPinned={showPinned}
       />
 
-      <MessageList messages={currentMessages} currentUserId={user?.id ?? ''} />
+      {showPinned && activeConversationId && (
+        <PinnedMessagesPanel
+          conversationId={activeConversationId}
+          onClose={() => setShowPinned(false)}
+          onNavigate={(messageId) => messageListRef.current?.scrollToMessage(messageId)}
+        />
+      )}
+
+      <MessageList ref={messageListRef} messages={currentMessages} currentUserId={user?.id ?? ''} />
+
+      {replyToMessage && (
+        <ReplyBar message={replyToMessage} onCancel={() => setReplyTo(null)} />
+      )}
 
       <MessageInput
         onSend={handleSend}
