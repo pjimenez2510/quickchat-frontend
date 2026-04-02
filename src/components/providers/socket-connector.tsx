@@ -1,26 +1,33 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useSocketContext } from './socket-provider';
 import { useAuthStore } from '@/stores/auth-store';
 import { useChatStore } from '@/stores/chat-store';
 import type { Message } from '@/types/message';
 
 export function SocketConnector({ children }: { children: React.ReactNode }) {
-  const { socket, isConnected, connect, disconnect } = useSocketContext();
+  const { socket, connect, disconnect } = useSocketContext();
   const user = useAuthStore((s) => s.user);
+  const hasConnected = useRef(false);
 
-  // Connect socket as soon as user is authenticated
+  // Connect socket once when user is available
   useEffect(() => {
-    if (!isConnected && user) {
-      const token = localStorage.getItem('accessToken');
-      if (token) connect(token);
+    if (hasConnected.current || !user) return;
+
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      connect(token);
+      hasConnected.current = true;
     }
 
     return () => {
-      disconnect();
+      if (hasConnected.current) {
+        disconnect();
+        hasConnected.current = false;
+      }
     };
-  }, [user, isConnected, connect, disconnect]);
+  }, [user, connect, disconnect]);
 
   // Global socket event listeners
   useEffect(() => {
