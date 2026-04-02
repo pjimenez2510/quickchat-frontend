@@ -6,6 +6,7 @@ import { MessageList, type MessageListHandle } from './message-list';
 import { MessageInput } from './message-input';
 import { ReplyBar } from './reply-bar';
 import { PinnedMessagesPanel } from './pinned-messages-panel';
+import { SearchMessages } from './search-messages';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth-store';
 import { useChatStore } from '@/stores/chat-store';
@@ -111,6 +112,7 @@ export function ChatPanel() {
   }, [socket, activeConversationId]);
 
   const [showPinned, setShowPinned] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
   const messageListRef = useRef<MessageListHandle>(null);
 
   // Re-read conversation after it might have been added
@@ -133,9 +135,19 @@ export function ChatPanel() {
         isOnline={conversation.otherUser.isOnline}
         lastSeenAt={conversation.otherUser.lastSeenAt}
         isTyping={typingInConversation.length > 0}
-        onTogglePinned={() => setShowPinned(!showPinned)}
+        onTogglePinned={() => { setShowPinned(!showPinned); setShowSearch(false); }}
         showPinned={showPinned}
+        onToggleSearch={() => { setShowSearch(!showSearch); setShowPinned(false); }}
+        showSearch={showSearch}
       />
+
+      {showSearch && activeConversationId && (
+        <SearchMessages
+          conversationId={activeConversationId}
+          onClose={() => setShowSearch(false)}
+          onNavigate={(id) => messageListRef.current?.scrollToMessage(id)}
+        />
+      )}
 
       {showPinned && activeConversationId && (
         <PinnedMessagesPanel

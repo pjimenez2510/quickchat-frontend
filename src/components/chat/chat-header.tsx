@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Pin } from 'lucide-react';
+import { ArrowLeft, Pin, Search } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatRelativeTime } from '@/lib/format';
 
@@ -14,6 +14,8 @@ interface ChatHeaderProps {
   isTyping: boolean;
   onTogglePinned: () => void;
   showPinned: boolean;
+  onToggleSearch: () => void;
+  showSearch: boolean;
 }
 
 export function ChatHeader({
@@ -24,6 +26,8 @@ export function ChatHeader({
   isTyping,
   onTogglePinned,
   showPinned,
+  onToggleSearch,
+  showSearch,
 }: ChatHeaderProps) {
   const router = useRouter();
 
@@ -82,6 +86,17 @@ export function ChatHeader({
           {statusText}
         </p>
       </div>
+
+      {/* Search toggle */}
+      <button
+        onClick={onToggleSearch}
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors ${
+          showSearch ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-accent'
+        }`}
+        title="Search messages"
+      >
+        <Search className="h-4 w-4" />
+      </button>
 
       {/* Pinned messages toggle */}
       <button

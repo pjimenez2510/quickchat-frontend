@@ -5,8 +5,10 @@ import { toast } from 'sonner';
 import { MessageBubble } from './message-bubble';
 import { ContextMenu } from './context-menu';
 import { EditMessageModal } from './edit-message-modal';
+import { ForwardModal } from './forward-modal';
 import { useSocketContext } from '@/components/providers/socket-provider';
 import { useChatStore } from '@/stores/chat-store';
+import { api } from '@/lib/api';
 import type { Message } from '@/types/message';
 
 interface MessageListProps {
@@ -30,7 +32,10 @@ export const MessageList = forwardRef<MessageListHandle, MessageListProps>(
       position: { x: number; y: number };
     } | null>(null);
     const [editingMessage, setEditingMessage] = useState<Message | null>(null);
+    const [forwardingMessage, setForwardingMessage] = useState<Message | null>(null);
     const [highlightedId, setHighlightedId] = useState<string | null>(null);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const hasMoreRef = useRef(true);
 
     useImperativeHandle(ref, () => ({
       scrollToMessage: (messageId: string) => {
@@ -55,6 +60,41 @@ export const MessageList = forwardRef<MessageListHandle, MessageListProps>(
         bottomRef.current?.scrollIntoView({ behavior: 'instant' });
       }
     }, [messages]);
+
+    // Scroll infinite — load older messages
+    useEffect(() => {
+      const container = containerRef.current;
+      if (!container) return;
+
+      const handleScroll = () => {
+        if (container.scrollTop < 100 && !isLoadingMore && hasMoreRef.current && messages.length > 0) {
+          const convId = messages[0]?.conversationId;
+          if (!convId) return;
+
+          setIsLoadingMore(true);
+          const cursor = messages[0].id;
+          const prevScrollHeight = container.scrollHeight;
+
+          api
+            .get<Message[]>(`/messages/conversation/${convId}?cursor=${cursor}`)
+            .then((res) => {
+              if (res.data.length === 0) {
+                hasMoreRef.current = false;
+              } else {
+                useChatStore.getState().prependMessages(convId, res.data.reverse());
+                requestAnimationFrame(() => {
+                  container.scrollTop = container.scrollHeight - prevScrollHeight;
+                });
+              }
+            })
+            .catch(() => {})
+            .finally(() => setIsLoadingMore(false));
+        }
+      };
+
+      container.addEventListener('scroll', handleScroll);
+      return () => container.removeEventListener('scroll', handleScroll);
+    }, [messages, isLoadingMore]);
 
     const handleContextMenu = useCallback(
       (e: React.MouseEvent, message: Message) => {
@@ -156,6 +196,11 @@ export const MessageList = forwardRef<MessageListHandle, MessageListProps>(
         className="min-h-0 flex-1 overflow-y-auto px-4 py-3"
       >
         <div className="flex flex-col justify-end min-h-full">
+          {isLoadingMore && (
+            <div className="flex justify-center py-2">
+              <span className="text-xs text-muted-foreground">Loading older messages...</span>
+            </div>
+          )}
           <div className="space-y-0.5">
             {messages.map((msg, i) => {
               const isOwn = msg.sender.id === currentUserId;
@@ -184,6 +229,13 @@ export const MessageList = forwardRef<MessageListHandle, MessageListProps>(
           <div ref={bottomRef} />
         </div>
 
+        {forwardingMessage && (
+          <ForwardModal
+            message={forwardingMessage}
+            onClose={() => setForwardingMessage(null)}
+          />
+        )}
+
         {editingMessage && (
           <EditMessageModal
             content={editingMessage.content ?? ''}
@@ -204,6 +256,7 @@ export const MessageList = forwardRef<MessageListHandle, MessageListProps>(
             onDeleteForAll={handleDeleteForAll}
             onPin={handlePin}
             onReact={handleReact}
+            onForward={() => { if (contextMenu) setForwardingMessage(contextMenu.message); }}
             onCopy={handleCopy}
           />
         )}

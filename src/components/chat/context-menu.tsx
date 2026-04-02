@@ -23,6 +23,7 @@ interface ContextMenuProps {
   onDeleteForAll: () => void;
   onPin: () => void;
   onReact: (emoji: string) => void;
+  onForward: () => void;
   onCopy: () => void;
 }
 
@@ -39,6 +40,7 @@ export function ContextMenu({
   onDeleteForAll,
   onPin,
   onReact,
+  onForward,
   onCopy,
 }: ContextMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
@@ -115,6 +117,7 @@ export function ContextMenu({
         {canEdit && (
           <MenuItem icon={Pencil} label="Edit" onClick={() => { onEdit(); onClose(); }} />
         )}
+        <MenuItem icon={Forward} label="Forward" onClick={() => { onForward(); onClose(); }} />
         <MenuItem icon={Pin} label={message.isPinned ? 'Unpin' : 'Pin'} onClick={() => { onPin(); onClose(); }} />
         <MenuItem icon={Trash2} label="Delete for me" onClick={() => { onDeleteForMe(); onClose(); }} destructive />
         {isOwn && (
