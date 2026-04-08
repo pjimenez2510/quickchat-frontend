@@ -5,8 +5,8 @@ import { X, Send, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { api } from '@/lib/api';
 import { useChatStore } from '@/stores/chat-store';
+import { useSocketContext } from '@/components/providers/socket-provider';
 import type { Message } from '@/types/message';
 
 interface ForwardModalProps {
@@ -16,6 +16,7 @@ interface ForwardModalProps {
 
 export function ForwardModal({ message, onClose }: ForwardModalProps) {
   const conversations = useChatStore((s) => s.conversations);
+  const { socket } = useSocketContext();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
 
@@ -26,20 +27,26 @@ export function ForwardModal({ message, onClose }: ForwardModalProps) {
     setSelected(next);
   };
 
-  const handleForward = async () => {
-    if (selected.size === 0) return;
+  const handleForward = () => {
+    if (selected.size === 0 || !socket) return;
     setIsLoading(true);
-    try {
-      const res = await api.post<Message[]>(`/messages/${message.id}/forward`, {
+
+    socket.emit(
+      'message:forward',
+      {
+        messageId: message.id,
         targetConversationIds: Array.from(selected),
-      });
-      toast.success(res.message);
-      onClose();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Forward failed');
-    } finally {
-      setIsLoading(false);
-    }
+      },
+      (response: { event: string; data: unknown }) => {
+        setIsLoading(false);
+        if (response?.event === 'message:forward:ack') {
+          toast.success(`Forwarded to ${selected.size} conversation(s)`);
+          onClose();
+        } else {
+          toast.error('Forward failed');
+        }
+      },
+    );
   };
 
   return (
