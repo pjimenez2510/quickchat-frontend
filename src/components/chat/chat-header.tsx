@@ -1,9 +1,10 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Pin, Search } from 'lucide-react';
+import { ArrowLeft, Pin, Search, Phone, Video } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatRelativeTime } from '@/lib/format';
+import { useCall } from '@/hooks/use-call';
 
 interface ChatHeaderProps {
   displayName: string;
@@ -12,6 +13,7 @@ interface ChatHeaderProps {
   isOnline: boolean;
   lastSeenAt: string | null;
   isTyping: boolean;
+  conversationId: string;
   onTogglePinned: () => void;
   showPinned: boolean;
   onToggleSearch: () => void;
@@ -24,12 +26,14 @@ export function ChatHeader({
   isOnline,
   lastSeenAt,
   isTyping,
+  conversationId,
   onTogglePinned,
   showPinned,
   onToggleSearch,
   showSearch,
 }: ChatHeaderProps) {
   const router = useRouter();
+  const { startCall } = useCall();
 
   const initials = displayName
     .split(' ')
@@ -86,6 +90,24 @@ export function ChatHeader({
           {statusText}
         </p>
       </div>
+
+      {/* Voice call */}
+      <button
+        onClick={() => startCall(conversationId, 'AUDIO')}
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-accent transition-colors"
+        title="Voice call"
+      >
+        <Phone className="h-4 w-4" />
+      </button>
+
+      {/* Video call */}
+      <button
+        onClick={() => startCall(conversationId, 'VIDEO')}
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-accent transition-colors"
+        title="Video call"
+      >
+        <Video className="h-4 w-4" />
+      </button>
 
       {/* Search toggle */}
       <button
