@@ -74,6 +74,7 @@ export function ActiveCallScreen() {
   const isOutgoing = uiState === 'outgoing';
   const isActive = uiState === 'active';
   const hasRemoteVideo = isVideo && remoteStream && isActive;
+  const hasRemoteStream = remoteStream !== null;
 
   return (
     <div className="fixed inset-0 z-[100] bg-gray-900 flex flex-col">
@@ -120,10 +121,12 @@ export function ActiveCallScreen() {
             <h2 className="text-2xl font-semibold text-white">{other.displayName}</h2>
             <p className="text-sm text-white/70 animate-pulse">
               {isOutgoing
-                ? isVideo
-                  ? 'Calling...'
-                  : 'Calling...'
-                : 'Connecting...'}
+                ? 'Calling...'
+                : !hasRemoteStream
+                  ? 'Connecting...'
+                  : isVideo
+                    ? 'Video off'
+                    : 'Voice call'}
             </p>
           </div>
         )}

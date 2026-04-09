@@ -6,14 +6,14 @@ import { useCallStore } from '@/stores/call-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { useSocketContext } from '@/components/providers/socket-provider';
 import type { Call, CallType } from '@/types/call';
+import type { Socket } from 'socket.io-client';
 
 const ICE_SERVERS: RTCIceServer[] = [
   { urls: 'stun:stun.l.google.com:19302' },
   { urls: 'stun:stun1.l.google.com:19302' },
 ];
 
-// Module-level singletons — shared across all useCall consumers
-// There can only be one active call at a time, so this is safe.
+// Module-level singletons — there is only one active call at a time.
 let peerConnection: RTCPeerConnection | null = null;
 const pendingCandidates: RTCIceCandidateInit[] = [];
 
@@ -32,107 +32,91 @@ function stopLocalStream() {
   }
 }
 
+function createPc(
+  socket: Socket,
+  callId: string,
+  targetUserId: string,
+): RTCPeerConnection {
+  if (peerConnection) {
+    peerConnection.close();
+  }
+
+  const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+
+  pc.onicecandidate = (event) => {
+    if (event.candidate) {
+      socket.emit('call:ice-candidate', {
+        callId,
+        targetUserId,
+        candidate: event.candidate.toJSON(),
+      });
+    }
+  };
+
+  pc.ontrack = (event) => {
+    const [remoteStream] = event.streams;
+    useCallStore.getState().setRemoteStream(remoteStream);
+  };
+
+  peerConnection = pc;
+  return pc;
+}
+
+async function getUserMedia(type: CallType): Promise<MediaStream> {
+  const constraints: MediaStreamConstraints = {
+    audio: true,
+    video: type === 'VIDEO' ? { width: 1280, height: 720 } : false,
+  };
+  const stream = await navigator.mediaDevices.getUserMedia(constraints);
+  useCallStore.getState().setLocalStream(stream);
+  return stream;
+}
+
 /**
  * Call actions hook — safe to call from multiple components.
- * Returns functions to start/answer/reject/end calls.
  * Does NOT register socket listeners — those live in useCallSignaling.
  */
 export function useCall() {
   const { socket } = useSocketContext();
 
-  const createPeerConnection = useCallback(
-    (callId: string, targetUserId: string) => {
-      if (peerConnection) {
-        peerConnection.close();
-      }
-
-      const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
-
-      pc.onicecandidate = (event) => {
-        if (event.candidate && socket) {
-          socket.emit('call:ice-candidate', {
-            callId,
-            targetUserId,
-            candidate: event.candidate.toJSON(),
-          });
-        }
-      };
-
-      pc.ontrack = (event) => {
-        const [remoteStream] = event.streams;
-        useCallStore.getState().setRemoteStream(remoteStream);
-      };
-
-      peerConnection = pc;
-      return pc;
-    },
-    [socket],
-  );
-
-  const getLocalMedia = useCallback(async (type: CallType) => {
-    try {
-      const constraints: MediaStreamConstraints = {
-        audio: true,
-        video: type === 'VIDEO' ? { width: 1280, height: 720 } : false,
-      };
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      useCallStore.getState().setLocalStream(stream);
-      return stream;
-    } catch (err) {
-      const message =
-        err instanceof DOMException && err.name === 'NotAllowedError'
-          ? 'Camera/microphone access denied'
-          : 'Could not access camera/microphone';
-      toast.error(message);
-      throw err;
-    }
-  }, []);
-
   const startCall = useCallback(
     async (conversationId: string, type: CallType) => {
       if (!socket) return;
 
-      const store = useCallStore.getState();
-
-      // Show outgoing UI immediately with a temporary placeholder
-      store.setUIState('outgoing');
+      // Show outgoing UI immediately
+      useCallStore.getState().setUIState('outgoing');
 
       try {
-        const stream = await getLocalMedia(type);
+        await getUserMedia(type);
 
         socket.emit(
           'call:initiate',
           { conversationId, type },
-          async (response: { event: string; data: unknown }) => {
+          (response: { event: string; data: unknown }) => {
             if (response?.event !== 'call:initiated') {
               const errorData = response?.data as { message?: string } | undefined;
               toast.error(errorData?.message ?? 'Could not start call');
-              stream.getTracks().forEach((t) => t.stop());
+              stopLocalStream();
               useCallStore.getState().reset();
               return;
             }
 
             const call = response.data as Call;
             useCallStore.getState().setCurrentCall(call);
-
-            // Create peer connection and send SDP offer
-            const pc = createPeerConnection(call.id, call.calleeId);
-            stream.getTracks().forEach((track) => pc.addTrack(track, stream));
-
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
-            socket.emit('call:offer', {
-              callId: call.id,
-              targetUserId: call.calleeId,
-              offer,
-            });
+            // Do NOT create peer connection or send offer yet.
+            // Wait for 'call:accepted' event, handled in useCallSignaling.
           },
         );
-      } catch {
+      } catch (err) {
+        const message =
+          err instanceof DOMException && err.name === 'NotAllowedError'
+            ? 'Camera/microphone access denied'
+            : 'Could not access camera/microphone';
+        toast.error(message);
         useCallStore.getState().reset();
       }
     },
-    [socket, getLocalMedia, createPeerConnection],
+    [socket],
   );
 
   const answerCall = useCallback(async () => {
@@ -141,19 +125,24 @@ export function useCall() {
     if (!call || !socket) return;
 
     try {
-      const stream = await getLocalMedia(call.type);
+      const stream = await getUserMedia(call.type);
 
-      // Create peer connection — we are the callee
-      const pc = createPeerConnection(call.id, call.callerId);
+      // Create peer connection as callee, add local tracks
+      const pc = createPc(socket, call.id, call.callerId);
       stream.getTracks().forEach((track) => pc.addTrack(track, stream));
 
       // Notify backend: callee accepted
       socket.emit('call:answer', { callId: call.id });
       state.setUIState('active');
-    } catch {
+    } catch (err) {
+      const message =
+        err instanceof DOMException && err.name === 'NotAllowedError'
+          ? 'Camera/microphone access denied'
+          : 'Could not access camera/microphone';
+      toast.error(message);
       state.reset();
     }
-  }, [socket, getLocalMedia, createPeerConnection]);
+  }, [socket]);
 
   const rejectCall = useCallback(() => {
     const { currentCall } = useCallStore.getState();
@@ -240,9 +229,8 @@ export function useCall() {
 }
 
 /**
- * Call signaling hook — registers socket listeners for WebRTC events.
- * MUST ONLY be called once globally (in CallManager). Do not use in
- * regular components or you'll get duplicate events.
+ * Call signaling hook — registers WebRTC socket listeners ONCE globally.
+ * Only CallManager should call this.
  */
 export function useCallSignaling() {
   const { socket } = useSocketContext();
@@ -255,9 +243,33 @@ export function useCallSignaling() {
       useCallStore.getState().setUIState('incoming');
     };
 
-    const handleAccepted = ({ call }: { call: Call }) => {
+    const handleAccepted = async ({ call }: { call: Call }) => {
+      // This runs on the CALLER after the CALLEE accepted.
+      // Now it's safe to create the peer connection, add local tracks,
+      // create an offer, and send it — we know the callee has a PC ready.
       useCallStore.getState().setCurrentCall(call);
       useCallStore.getState().setUIState('active');
+
+      const { localStream } = useCallStore.getState();
+      if (!localStream) {
+        console.error('No local stream available for caller');
+        return;
+      }
+
+      const pc = createPc(socket, call.id, call.calleeId);
+      localStream.getTracks().forEach((track) => pc.addTrack(track, localStream));
+
+      try {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        socket.emit('call:offer', {
+          callId: call.id,
+          targetUserId: call.calleeId,
+          offer,
+        });
+      } catch (err) {
+        console.error('Failed to create offer', err);
+      }
     };
 
     const handleRejected = () => {
@@ -283,59 +295,62 @@ export function useCallSignaling() {
       fromUserId: string;
       offer: RTCSessionDescriptionInit;
     }) => {
-      let pc = peerConnection;
+      // This runs on the CALLEE. The PC was already created in answerCall().
+      const pc = peerConnection;
       if (!pc) {
-        pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
-        pc.onicecandidate = (event) => {
-          if (event.candidate && socket) {
-            socket.emit('call:ice-candidate', {
-              callId,
-              targetUserId: fromUserId,
-              candidate: event.candidate.toJSON(),
-            });
-          }
-        };
-        pc.ontrack = (event) => {
-          const [remoteStream] = event.streams;
-          useCallStore.getState().setRemoteStream(remoteStream);
-        };
-        peerConnection = pc;
+        console.error('handleOffer: no peer connection on callee side');
+        return;
+      }
 
-        const { localStream } = useCallStore.getState();
-        if (localStream) {
-          localStream.getTracks().forEach((track) => pc!.addTrack(track, localStream));
+      try {
+        await pc.setRemoteDescription(new RTCSessionDescription(offer));
+
+        // Flush any ICE candidates that arrived before the remote description
+        for (const candidate of pendingCandidates) {
+          await pc.addIceCandidate(new RTCIceCandidate(candidate));
         }
+        pendingCandidates.length = 0;
+
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+
+        socket.emit('call:answer-sdp', {
+          callId,
+          targetUserId: fromUserId,
+          answer,
+        });
+      } catch (err) {
+        console.error('handleOffer error', err);
       }
-
-      await pc.setRemoteDescription(new RTCSessionDescription(offer));
-
-      for (const candidate of pendingCandidates) {
-        await pc.addIceCandidate(new RTCIceCandidate(candidate));
-      }
-      pendingCandidates.length = 0;
-
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-
-      socket.emit('call:answer-sdp', {
-        callId,
-        targetUserId: fromUserId,
-        answer,
-      });
     };
 
-    const handleAnswerSdp = async ({ answer }: { callId: string; answer: RTCSessionDescriptionInit }) => {
+    const handleAnswerSdp = async ({
+      answer,
+    }: {
+      callId: string;
+      answer: RTCSessionDescriptionInit;
+    }) => {
+      // This runs on the CALLER after the CALLEE sent its answer.
       const pc = peerConnection;
       if (!pc) return;
-      await pc.setRemoteDescription(new RTCSessionDescription(answer));
 
-      for (const candidate of pendingCandidates) {
-        await pc.addIceCandidate(new RTCIceCandidate(candidate));
+      try {
+        await pc.setRemoteDescription(new RTCSessionDescription(answer));
+
+        for (const candidate of pendingCandidates) {
+          await pc.addIceCandidate(new RTCIceCandidate(candidate));
+        }
+        pendingCandidates.length = 0;
+      } catch (err) {
+        console.error('handleAnswerSdp error', err);
       }
-      pendingCandidates.length = 0;
     };
 
-    const handleIceCandidate = async ({ candidate }: { candidate: RTCIceCandidateInit }) => {
+    const handleIceCandidate = async ({
+      candidate,
+    }: {
+      candidate: RTCIceCandidateInit;
+    }) => {
       const pc = peerConnection;
       if (pc?.remoteDescription) {
         try {
