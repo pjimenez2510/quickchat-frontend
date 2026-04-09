@@ -30,65 +30,106 @@ export function ActiveCallScreen() {
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const remoteAudioRef = useRef<HTMLAudioElement>(null);
   const [duration, setDuration] = useState(0);
 
+  // Attach local stream to local video element
   useEffect(() => {
     if (localVideoRef.current && localStream) {
       localVideoRef.current.srcObject = localStream;
     }
-  }, [localStream]);
+  }, [localStream, uiState]);
 
+  // Attach remote stream to remote video element
   useEffect(() => {
     if (remoteVideoRef.current && remoteStream) {
       remoteVideoRef.current.srcObject = remoteStream;
     }
   }, [remoteStream]);
 
-  // Timer
+  // Always attach remote stream to a dedicated audio element for reliable audio playback
   useEffect(() => {
-    if (uiState !== 'active') return;
+    if (remoteAudioRef.current && remoteStream) {
+      remoteAudioRef.current.srcObject = remoteStream;
+    }
+  }, [remoteStream]);
+
+  // Duration timer (only when call is active, not outgoing)
+  useEffect(() => {
+    if (uiState !== 'active') {
+      setDuration(0);
+      return;
+    }
     const interval = setInterval(() => setDuration((d) => d + 1), 1000);
     return () => clearInterval(interval);
   }, [uiState]);
 
-  if ((uiState !== 'active' && uiState !== 'outgoing') || !currentCall) return null;
+  if ((uiState !== 'active' && uiState !== 'outgoing') || !currentCall) {
+    return null;
+  }
 
   const other = currentCall.callerId === currentUserId ? currentCall.callee : currentCall.caller;
   const initials = other.displayName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
   const isVideo = currentCall.type === 'VIDEO';
+  const isOutgoing = uiState === 'outgoing';
+  const isActive = uiState === 'active';
+  const hasRemoteVideo = isVideo && remoteStream && isActive;
 
   return (
     <div className="fixed inset-0 z-[100] bg-gray-900 flex flex-col">
-      {/* Remote video fullscreen (or avatar if audio-only/outgoing) */}
+      {/* Hidden audio element — always plays remote stream audio */}
+      <audio ref={remoteAudioRef} autoPlay playsInline className="hidden" />
+
+      {/* Main view */}
       <div className="relative flex-1 overflow-hidden">
-        {isVideo && remoteStream ? (
+        {hasRemoteVideo ? (
+          // Active video call — remote video fullscreen, local video muted
           <video
             ref={remoteVideoRef}
             autoPlay
             playsInline
+            muted
             className="absolute inset-0 w-full h-full object-cover bg-black"
           />
+        ) : isVideo && isOutgoing && localStream ? (
+          // Outgoing video call — show local video fullscreen while calling
+          <video
+            ref={localVideoRef}
+            autoPlay
+            playsInline
+            muted
+            className="absolute inset-0 w-full h-full object-cover bg-black scale-x-[-1]"
+          />
         ) : (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
-            <Avatar className="h-40 w-40 ring-4 ring-white/20">
-              <AvatarImage src={other.avatarUrl ?? undefined} />
-              <AvatarFallback className="bg-primary/20 text-white text-5xl font-semibold">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
+          // Audio call or waiting — show avatar
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-gradient-to-b from-gray-800 to-gray-900">
+            <div className="relative">
+              <Avatar className="h-40 w-40 ring-4 ring-white/20">
+                <AvatarImage src={other.avatarUrl ?? undefined} />
+                <AvatarFallback className="bg-primary/20 text-white text-5xl font-semibold">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              {isOutgoing && (
+                <>
+                  <span className="absolute inset-0 rounded-full animate-ping ring-4 ring-white/30" />
+                  <span className="absolute -inset-2 rounded-full animate-ping ring-2 ring-white/20 [animation-delay:0.5s]" />
+                </>
+              )}
+            </div>
             <h2 className="text-2xl font-semibold text-white">{other.displayName}</h2>
-            <p className="text-sm text-white/70">
-              {uiState === 'outgoing'
-                ? 'Calling...'
-                : isVideo
-                  ? 'Connecting video...'
-                  : 'Voice call'}
+            <p className="text-sm text-white/70 animate-pulse">
+              {isOutgoing
+                ? isVideo
+                  ? 'Calling...'
+                  : 'Calling...'
+                : 'Connecting...'}
             </p>
           </div>
         )}
 
         {/* Header overlay with name + timer */}
-        <div className="absolute top-0 inset-x-0 p-6 bg-gradient-to-b from-black/60 to-transparent">
+        <div className="absolute top-0 inset-x-0 p-6 bg-gradient-to-b from-black/60 to-transparent pointer-events-none">
           <div className="flex items-center gap-3">
             <Avatar className="h-10 w-10 ring-2 ring-white/30">
               <AvatarImage src={other.avatarUrl ?? undefined} />
@@ -98,21 +139,23 @@ export function ActiveCallScreen() {
             </Avatar>
             <div>
               <p className="text-white font-semibold text-sm">{other.displayName}</p>
-              {uiState === 'active' && (
-                <p className="text-white/70 text-xs">{formatDuration(duration)}</p>
-              )}
+              <p className="text-white/70 text-xs">
+                {isOutgoing ? 'Calling...' : formatDuration(duration)}
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Local video PiP */}
-        {isVideo && localStream && (
+        {/* Local video PiP — only when remote video is showing (active video call) */}
+        {hasRemoteVideo && localStream && (
           <div className="absolute top-6 right-6 w-32 h-44 md:w-40 md:h-56 rounded-2xl overflow-hidden border-2 border-white/20 bg-black shadow-2xl">
             <video
-              ref={localVideoRef}
               autoPlay
               playsInline
               muted
+              ref={(el) => {
+                if (el && localStream) el.srcObject = localStream;
+              }}
               className="w-full h-full object-cover scale-x-[-1]"
             />
             {isVideoOff && (
@@ -153,7 +196,7 @@ export function ActiveCallScreen() {
             </button>
           )}
 
-          {isVideo && uiState === 'active' && (
+          {isVideo && isActive && (
             <button
               onClick={toggleScreenShare}
               className={`flex h-14 w-14 items-center justify-center rounded-full transition-colors ${
