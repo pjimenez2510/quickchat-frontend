@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth-store';
 import { SocketProvider } from '@/components/providers/socket-provider';
 import { SocketConnector } from '@/components/providers/socket-connector';
+import { CallManager } from '@/components/calls/call-manager';
 import { Sidebar } from '@/components/sidebar/sidebar';
 import { api } from '@/lib/api';
 import type { User } from '@/types/user';
@@ -75,6 +76,7 @@ export default function ChatLayout({
             {children}
           </div>
         </div>
+        <CallManager />
       </SocketConnector>
     </SocketProvider>
   );

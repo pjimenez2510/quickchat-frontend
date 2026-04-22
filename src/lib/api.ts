@@ -24,6 +24,8 @@ class ApiClient {
   private getHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      // Skip ngrok's browser warning interstitial page (free tier)
+      'ngrok-skip-browser-warning': 'true',
     };
 
     if (typeof window !== 'undefined') {

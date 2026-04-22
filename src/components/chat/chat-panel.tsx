@@ -135,6 +135,7 @@ export function ChatPanel() {
         isOnline={conversation.otherUser.isOnline}
         lastSeenAt={conversation.otherUser.lastSeenAt}
         isTyping={typingInConversation.length > 0}
+        conversationId={conversation.id}
         onTogglePinned={() => { setShowPinned(!showPinned); setShowSearch(false); }}
         showPinned={showPinned}
         onToggleSearch={() => { setShowSearch(!showSearch); setShowPinned(false); }}
