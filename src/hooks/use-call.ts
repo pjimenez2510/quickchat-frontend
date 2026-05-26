@@ -8,10 +8,45 @@ import { useSocketContext } from '@/components/providers/socket-provider';
 import type { Call, CallType } from '@/types/call';
 import type { Socket } from 'socket.io-client';
 
-const ICE_SERVERS: RTCIceServer[] = [
-  { urls: 'stun:stun.l.google.com:19302' },
-  { urls: 'stun:stun1.l.google.com:19302' },
-];
+// STUN servers are always configured; TURN is optional but required for
+// peers behind restrictive NAT (mobile data / CGNAT / corporate firewalls).
+// Configure TURN via NEXT_PUBLIC_TURN_* env vars (get free credentials
+// at https://dashboard.metered.ca after a 2-minute signup).
+function buildIceServers(): RTCIceServer[] {
+  const servers: RTCIceServer[] = [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+  ];
+
+  const turnUsername = process.env['NEXT_PUBLIC_TURN_USERNAME'];
+  const turnCredential = process.env['NEXT_PUBLIC_TURN_CREDENTIAL'];
+
+  if (turnUsername && turnCredential) {
+    // Metered global relay — port 80 UDP, 443 UDP, 443 TCP for maximum
+    // chance of traversing restrictive networks.
+    servers.push(
+      {
+        urls: 'turn:global.relay.metered.ca:80',
+        username: turnUsername,
+        credential: turnCredential,
+      },
+      {
+        urls: 'turn:global.relay.metered.ca:443',
+        username: turnUsername,
+        credential: turnCredential,
+      },
+      {
+        urls: 'turns:global.relay.metered.ca:443?transport=tcp',
+        username: turnUsername,
+        credential: turnCredential,
+      },
+    );
+  }
+
+  return servers;
+}
+
+const ICE_SERVERS: RTCIceServer[] = buildIceServers();
 
 // Module-level singletons — there is only one active call at a time.
 let peerConnection: RTCPeerConnection | null = null;
