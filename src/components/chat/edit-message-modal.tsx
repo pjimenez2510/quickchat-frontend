@@ -61,8 +61,7 @@ export function EditMessageModal({ content, onSave, onClose }: EditMessageModalP
             value={value}
             onChange={(e) => setValue(e.target.value)}
             rows={3}
-            className="w-full resize-none rounded-xl border border-border bg-accent/30 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary/30"
-            style={{ maxHeight: '200px' }}
+            className="w-full resize-none rounded-xl border border-border bg-accent/30 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary/30 max-h-[200px]"
           />
 
           <div className="flex justify-end gap-2">

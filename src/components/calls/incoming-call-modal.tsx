@@ -67,10 +67,7 @@ export function IncomingCallModal() {
                 {initials}
               </AvatarFallback>
             </Avatar>
-            <span
-              className="absolute -bottom-1 -right-1 flex h-10 w-10 items-center justify-center rounded-full border-4 border-background"
-              style={{ backgroundColor: 'var(--qc-bubble-sent)' }}
-            >
+            <span className="absolute -bottom-1 -right-1 flex h-10 w-10 items-center justify-center rounded-full border-4 border-background bg-[var(--qc-bubble-sent)]">
               {currentCall.type === 'VIDEO' ? (
                 <Video className="h-5 w-5 text-white" />
               ) : (

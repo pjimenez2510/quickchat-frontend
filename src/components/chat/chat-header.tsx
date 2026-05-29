@@ -5,6 +5,7 @@ import { ArrowLeft, Pin, Search, Phone, Video } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatRelativeTime } from '@/lib/format';
 import { useCall } from '@/hooks/use-call';
+import { cn } from '@/lib/utils';
 
 interface ChatHeaderProps {
   displayName: string;
@@ -68,24 +69,21 @@ export function ChatHeader({
           </AvatarFallback>
         </Avatar>
         {isOnline && (
-          <span
-            className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background"
-            style={{ backgroundColor: 'var(--qc-online)' }}
-          />
+          <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background bg-[var(--qc-online)]" />
         )}
       </div>
 
       <div className="flex-1">
         <h2 className="text-sm font-semibold leading-tight">{displayName}</h2>
         <p
-          className="text-xs leading-tight"
-          style={{
-            color: isTyping
-              ? 'var(--qc-bubble-sent)'
+          className={cn(
+            'text-xs leading-tight',
+            isTyping
+              ? 'text-[var(--qc-bubble-sent)]'
               : isOnline
-                ? 'var(--qc-online)'
-                : 'var(--muted-foreground)',
-          }}
+                ? 'text-[var(--qc-online)]'
+                : 'text-muted-foreground',
+          )}
         >
           {statusText}
         </p>

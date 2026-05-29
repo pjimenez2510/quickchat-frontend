@@ -143,8 +143,7 @@ export function MessageInput({
             placeholder="Type a message..."
             disabled={disabled || isUploading}
             rows={1}
-            className="w-full resize-none rounded-2xl border border-border bg-accent/30 px-4 py-2.5 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/30 disabled:opacity-50"
-            style={{ maxHeight: '120px' }}
+            className="w-full resize-none rounded-2xl border border-border bg-accent/30 px-4 py-2.5 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/30 disabled:opacity-50 max-h-[120px]"
           />
         </div>
 
