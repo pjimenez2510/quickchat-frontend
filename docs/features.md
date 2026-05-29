@@ -163,8 +163,9 @@ estado en `stores/call-store.ts`.
 
 El payload de **REST** y **WebSocket** se cifra con **QCipher** (simétrico, clave
 compartida con el backend). Es **ofuscación en tránsito, no E2E**: el servidor
-descifra y guarda los mensajes en texto plano. Detalle completo y advertencias de
-seguridad en **[`transport-encryption.md`](transport-encryption.md)**.
+descifra para operar (el backend además cifra el `content` en reposo con otra
+clave). Detalle completo y advertencias de seguridad en
+**[`transport-encryption.md`](transport-encryption.md)**.
 
 ## Estado de la aplicación
 

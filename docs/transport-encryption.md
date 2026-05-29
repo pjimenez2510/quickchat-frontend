@@ -3,8 +3,10 @@
 > **TL;DR.** QuickChat cifra el **payload completo** de cada petición/respuesta REST
 > y de cada evento WebSocket con un cifrado simétrico propio (**QCipher**) y una
 > **clave compartida** cliente↔servidor. Es una **capa de ofuscación en tránsito**,
-> **NO** es cifrado de extremo a extremo (E2E): el servidor descifra con la misma
-> clave y **guarda los mensajes en texto plano** en la base de datos.
+> **NO** es cifrado de extremo a extremo (E2E): el servidor descifra el transporte
+> con la misma clave (puede leer los mensajes). El backend además cifra el
+> `content` **en reposo** con otra clave (ver nota más abajo), pero al tener ambas
+> claves no hay confidencialidad frente al servidor.
 
 ## Qué se cifra
 
@@ -92,9 +94,11 @@ socket.on(evento)     ◀──{v,iv,ct}── WS ───┘ (re-cifra al emit
 QCipher es **didáctico**, no de grado criptográfico. Hay que ser honestos sobre lo
 que aporta y lo que **no**:
 
-- ❌ **No es E2E.** El servidor tiene la clave, descifra y **almacena los mensajes
-  en texto plano** (`content` en PostgreSQL). No protege frente a compromiso del
-  servidor ni acceso de un administrador.
+- ❌ **No es E2E.** El servidor tiene la clave de transporte y descifra (puede leer
+  los mensajes). El backend cifra el `content` **en reposo** con otra clave
+  (`CRYPTO_AT_REST_KEY`), lo que mitiga un volcado de BD, pero como el servidor
+  posee ambas claves **no hay confidencialidad frente a un servidor comprometido**.
+  Detalle: `quickchat-backend/docs/encryption.md`.
 - ❌ **La clave es pública en la práctica.** Al ir en una variable `NEXT_PUBLIC_*`,
   queda embebida en el bundle JavaScript del navegador: cualquiera puede
   extraerla. Por tanto, frente a un atacante, esto es **ofuscación**, no
