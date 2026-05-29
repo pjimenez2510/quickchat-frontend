@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { SONNER_STYLE_HASH } from '@/lib/sonner-csp-hash';
 
 // Proxy (Next.js 16 — antes "middleware"). Genera un nonce único por request
 // y emite la cabecera Content-Security-Policy de forma dinámica, de modo que
@@ -7,11 +8,14 @@ import type { NextRequest } from 'next/server';
 // 'unsafe-inline'. Next.js detecta el nonce en la CSP de la request y lo
 // aplica automáticamente a sus scripts de bootstrap/hydration.
 //
-// Nota: `style-src` mantiene 'unsafe-inline' a propósito. Los nonces NO aplican
-// a atributos `style="..."` (solo a bloques <style>), y la UI usa estilos
-// inline dinámicos (emoji-mart, GIPHY, waveform de voz). Quitarlo rompería
-// el render. Riesgo residual bajo: la inyección de CSS es mucho menos severa
-// que la de scripts, y frame-ancestors/object-src/base-uri ya mitigan.
+// `style-src` también evita 'unsafe-inline':
+//   - 'nonce-<valor>' cubre los <style> que inyecta Next.js (los nonce-a igual
+//     que los scripts).
+//   - El hash de sonner cubre el <style> que esa librería inyecta en runtime
+//     (no soporta nonce). Se regenera en build (scripts/generate-sonner-csp-hash.mjs).
+//   - Los `style="..."` SSR se eliminaron del código (se usan clases Tailwind);
+//     los estilos dinámicos restantes (p. ej. posición del menú contextual) se
+//     aplican en cliente vía CSSOM, que CSP no restringe.
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002';
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? 'http://localhost:3002';
@@ -31,18 +35,28 @@ function buildConnectSrc(): string {
 }
 
 function buildCsp(nonce: string, isDev: boolean): string {
-  // En dev, React/Turbopack usan eval() para HMR y stacks de error → unsafe-eval.
-  const scriptSrc = [
-    "'self'",
-    `'nonce-${nonce}'`,
-    "'strict-dynamic'",
-    ...(isDev ? ["'unsafe-eval'"] : []),
-  ].join(' ');
+  // En desarrollo, Turbopack/React inyectan scripts y estilos para HMR y el
+  // error overlay que no llevan nonce. Como un nonce/hash presente hace que el
+  // navegador IGNORE 'unsafe-inline', en dev usamos una CSP permisiva. La CSP
+  // estricta (la que audita ZAP) aplica solo en producción.
+  const scriptSrc = isDev
+    ? `'self' 'unsafe-inline' 'unsafe-eval'`
+    : `'self' 'nonce-${nonce}' 'strict-dynamic'`;
+
+  // EMPTY_STYLE_HASH: sha256 del string vacío. Sonner (y los placeholders de
+  // precedencia CSS de Next) insertan un <style> vacío antes de rellenarlo;
+  // ese estado transitorio dispara una violación. Whitelistear el <style> vacío
+  // es inocuo (no contiene reglas) y silencia el aviso. No es 'unsafe-inline',
+  // así que no reactiva el flag de ZAP.
+  const EMPTY_STYLE_HASH = 'sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=';
+  const styleSrc = isDev
+    ? `'self' 'unsafe-inline'`
+    : `'self' 'nonce-${nonce}' '${SONNER_STYLE_HASH}' '${EMPTY_STYLE_HASH}'`;
 
   return [
     `default-src 'self'`,
     `script-src ${scriptSrc}`,
-    `style-src 'self' 'unsafe-inline'`,
+    `style-src ${styleSrc}`,
     `img-src 'self' data: blob: https://*.amazonaws.com https://media.giphy.com https://media0.giphy.com https://media1.giphy.com https://media2.giphy.com https://media3.giphy.com https://media4.giphy.com`,
     `font-src 'self' data:`,
     `connect-src ${buildConnectSrc()}`,
