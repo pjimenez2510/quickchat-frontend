@@ -14,6 +14,24 @@ Aplicación de mensajería en tiempo real estilo Messenger. Este repositorio es 
 - **sonner** (toasts) · **lucide-react** (iconos)
 - WebRTC para llamadas (TURN/STUN)
 
+## Funcionalidades
+
+Mensajería 1:1 en tiempo real estilo Messenger:
+
+- **Auth**: registro/login con JWT y guard de rutas bidireccional.
+- **Perfil**: ajustes y subida de avatar; estado online / última conexión.
+- **Mensajería**: texto, imágenes/vídeo/archivos, **notas de voz**, **emojis**,
+  **GIFs** (Giphy) y **stickers**; scroll infinito.
+- **Estados de mensaje**: ✓ enviado · ✓✓ entregado · ✓✓ leído · "escribiendo…".
+- **Acciones**: responder, copiar, editar, eliminar (mí/todos), reaccionar, fijar
+  y reenviar.
+- **Búsqueda** de mensajes y panel de fijados.
+- **Llamadas de audio/vídeo (WebRTC)** con STUN/TURN y compartir pantalla.
+- **Tiempo real** vía Socket.io; **cifrado de transporte** en REST y WebSocket.
+
+📖 Referencia completa: **[`docs/features.md`](docs/features.md)** ·
+cifrado: **[`docs/transport-encryption.md`](docs/transport-encryption.md)**.
+
 ## Requisitos
 
 - Node.js ≥ 20
@@ -105,6 +123,14 @@ Implicaciones para el desarrollo:
 
 Decisión documentada en
 [`docs/adr/0001-csp-nonce-hardening.md`](docs/adr/0001-csp-nonce-hardening.md).
+
+### Cifrado de transporte (QCipher)
+
+El payload de REST y WebSocket se cifra con un cifrado simétrico propio (clave
+compartida con el backend vía `NEXT_PUBLIC_CRYPTO_TRANSPORT_KEY`). Es **ofuscación
+en tránsito, NO cifrado de extremo a extremo** (el servidor descifra y almacena los
+mensajes en texto plano). La confidencialidad real la aporta HTTPS/WSS. Detalle y
+advertencias en [`docs/transport-encryption.md`](docs/transport-encryption.md).
 
 ## Flujo de trabajo
 

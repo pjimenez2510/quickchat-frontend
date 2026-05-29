@@ -32,8 +32,10 @@ y el versionado [SemVer](https://semver.org/lang/es/).
 
 - `scripts/generate-sonner-csp-hash.mjs` + hooks `prebuild`/`predev` que
   regeneran el hash CSP de `sonner` en cada build.
-- Documentación: `README.md` reescrito, `.env.example`, este `CHANGELOG.md` y
-  ADR `docs/adr/0001-csp-nonce-hardening.md`.
+- Documentación: `README.md` reescrito, `.env.example`, este `CHANGELOG.md`,
+  ADR `docs/adr/0001-csp-nonce-hardening.md`, guía de funcionalidades y
+  arquitectura `docs/features.md` (incluye llamadas WebRTC y eventos Socket.io) y
+  `docs/transport-encryption.md` (cifrado QCipher, qué se cifra y advertencias).
 
 ---
 
