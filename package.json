@@ -3,7 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "csp:sonner-hash": "node scripts/generate-sonner-csp-hash.mjs",
+    "predev": "node scripts/generate-sonner-csp-hash.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/generate-sonner-csp-hash.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"

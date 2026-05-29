@@ -1,3 +1,9 @@
+import {
+  qcipherEncrypt,
+  qcipherDecrypt,
+  isEncryptedPayload,
+} from './crypto/qcipher';
+
 const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3002';
 
 interface ApiResponse<T> {
@@ -30,7 +36,8 @@ class ApiClient {
 
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('accessToken');
-      if (token) {
+      // Guardar contra valores corruptos: literal "undefined"/"null"
+      if (token && token !== 'undefined' && token !== 'null') {
         headers['Authorization'] = `Bearer ${token}`;
       }
     }
@@ -43,20 +50,34 @@ class ApiClient {
     path: string,
     body?: unknown,
   ): Promise<ApiResponse<T>> {
+    // Cifrar body si existe
+    const encryptedBody =
+      body !== undefined ? qcipherEncrypt(JSON.stringify(body)) : undefined;
+
     const res = await fetch(`${this.baseUrl}${path}`, {
       method,
       headers: this.getHeaders(),
-      body: body ? JSON.stringify(body) : undefined,
+      body: encryptedBody ? JSON.stringify(encryptedBody) : undefined,
     });
 
-    const json = await res.json();
+    const raw = (await res.json()) as unknown;
 
-    if (!res.ok) {
-      const error = json as ApiError;
-      throw new Error(error.message || 'An error occurred');
+    // El backend siempre cifra la respuesta: { v:1, iv, ct }
+    let parsed: unknown = raw;
+    if (isEncryptedPayload(raw)) {
+      try {
+        parsed = JSON.parse(qcipherDecrypt(raw));
+      } catch {
+        throw new Error('Failed to decrypt server response');
+      }
     }
 
-    return json as ApiResponse<T>;
+    if (!res.ok) {
+      const error = parsed as ApiError;
+      throw new Error(error?.message || 'An error occurred');
+    }
+
+    return parsed as ApiResponse<T>;
   }
 
   get<T>(path: string) {

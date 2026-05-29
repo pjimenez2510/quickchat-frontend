@@ -27,10 +27,7 @@ export default function AuthLayout({
   return (
     <div className="flex min-h-screen">
       {/* Left panel - branding (hidden on mobile) */}
-      <div
-        className="hidden lg:flex lg:w-1/2 items-center justify-center p-12"
-        style={{ backgroundColor: 'var(--qc-bubble-sent)' }}
-      >
+      <div className="hidden lg:flex lg:w-1/2 items-center justify-center p-12 bg-[var(--qc-bubble-sent)]">
         <div className="max-w-md text-white space-y-6">
           <div className="flex items-center gap-3">
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-sm">
@@ -63,10 +60,7 @@ export default function AuthLayout({
         <div className="w-full max-w-[420px]">
           {/* Mobile logo */}
           <div className="flex items-center justify-center gap-2 mb-8 lg:hidden">
-            <div
-              className="flex h-10 w-10 items-center justify-center rounded-xl"
-              style={{ backgroundColor: 'var(--qc-bubble-sent)' }}
-            >
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--qc-bubble-sent)]">
               <MessageCircle className="h-5 w-5 text-white" />
             </div>
             <span className="text-2xl font-bold text-primary">QuickChat</span>

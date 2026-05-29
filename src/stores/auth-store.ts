@@ -16,6 +16,14 @@ export const useAuthStore = create<AuthState>((set) => ({
   isAuthenticated: false,
 
   setAuth: (user, accessToken, refreshToken) => {
+    if (!accessToken || !refreshToken) {
+      // Respuesta del backend mal formada — no autenticar con tokens vacíos
+      console.error('setAuth llamado con tokens inválidos:', {
+        accessToken,
+        refreshToken,
+      });
+      return;
+    }
     if (typeof window !== 'undefined') {
       localStorage.setItem('accessToken', accessToken);
       localStorage.setItem('refreshToken', refreshToken);

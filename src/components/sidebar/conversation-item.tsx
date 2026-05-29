@@ -52,10 +52,7 @@ export function ConversationItem({
           </AvatarFallback>
         </Avatar>
         {otherUser.isOnline && (
-          <span
-            className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-background"
-            style={{ backgroundColor: 'var(--qc-online)' }}
-          />
+          <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-background bg-[var(--qc-online)]" />
         )}
       </div>
 

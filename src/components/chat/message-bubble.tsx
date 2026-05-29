@@ -94,20 +94,11 @@ export function MessageBubble({ message, isOwn, showAvatar, onContextMenu }: Mes
               : cn(
                   'px-4 py-2 shadow-sm',
                   isOwn ? 'rounded-br-md' : 'rounded-bl-md',
+                  isOwn
+                    ? 'bg-[var(--qc-bubble-sent)] text-[var(--qc-bubble-sent-text)]'
+                    : 'bg-[var(--qc-bubble-received)] text-[var(--qc-bubble-received-text)]',
                 ),
           )}
-          style={
-            message.type === 'STICKER'
-              ? {}
-              : {
-                  backgroundColor: isOwn
-                    ? 'var(--qc-bubble-sent)'
-                    : 'var(--qc-bubble-received)',
-                  color: isOwn
-                    ? 'var(--qc-bubble-sent-text)'
-                    : 'var(--qc-bubble-received-text)',
-                }
-          }
         >
           {message.type === 'TEXT' && (
             <p className="whitespace-pre-wrap break-words">{message.content}</p>
