@@ -63,10 +63,11 @@ export function ChatPanel() {
       .catch(() => {});
   }, [activeConversationId]);
 
-  // Emit read receipt when opening a conversation
+  // Emit read receipt when opening a conversation and clear the manual "unread" flag (RF-21).
   useEffect(() => {
     if (!activeConversationId || !socket) return;
     socket.emit('message:read', { conversationId: activeConversationId });
+    useChatStore.getState().clearConversationUnread(activeConversationId);
   }, [activeConversationId, socket]);
 
   // Load messages when conversation changes
@@ -134,6 +135,9 @@ export function ChatPanel() {
         avatarUrl={conversation.otherUser.avatarUrl}
         isOnline={conversation.otherUser.isOnline}
         lastSeenAt={conversation.otherUser.lastSeenAt}
+        customStatus={conversation.otherUser.customStatus}
+        customStatusEmoji={conversation.otherUser.customStatusEmoji}
+        otherUserId={conversation.otherUser.id}
         isTyping={typingInConversation.length > 0}
         conversationId={conversation.id}
         onTogglePinned={() => { setShowPinned(!showPinned); setShowSearch(false); }}
