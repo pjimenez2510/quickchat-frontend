@@ -7,6 +7,8 @@ export interface Conversation {
     avatarUrl: string | null;
     isOnline: boolean;
     lastSeenAt: string | null;
+    customStatus: string | null;
+    customStatusEmoji: string | null;
   };
   lastMessage: {
     id: string;
@@ -15,5 +17,7 @@ export interface Conversation {
     senderId: string;
     createdAt: string;
   } | null;
+  isArchived: boolean;
+  isUnread: boolean;
   updatedAt: string;
 }

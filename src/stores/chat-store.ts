@@ -18,6 +18,7 @@ interface ChatState {
   updateUserOnlineStatus: (userId: string, isOnline: boolean, lastSeenAt: string) => void;
   markMessageDelivered: (conversationId: string, messageId: string) => void;
   markConversationRead: (conversationId: string, senderId: string) => void;
+  clearConversationUnread: (conversationId: string) => void;
   updateMessage: (conversationId: string, messageId: string, updates: Partial<Message>) => void;
   removeMessage: (conversationId: string, messageId: string) => void;
   replyToMessage: Message | null;
@@ -165,6 +166,13 @@ export const useChatStore = create<ChatState>((set) => ({
       }
       return { messages: newMessages };
     }),
+
+  clearConversationUnread: (conversationId) =>
+    set((state) => ({
+      conversations: state.conversations.map((c) =>
+        c.id === conversationId && c.isUnread ? { ...c, isUnread: false } : c,
+      ),
+    })),
 
   markConversationRead: (conversationId, senderId) =>
     set((state) => {
