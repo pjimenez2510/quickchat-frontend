@@ -55,7 +55,7 @@ export function MessageBubble({ message, isOwn, showAvatar, onContextMenu }: Mes
         </div>
       )}
 
-      <div className={cn('max-w-[65%]', isOwn && 'mr-1')}>
+      <div className={cn('max-w-[78%] md:max-w-[65%] min-w-0', isOwn && 'mr-1')}>
         {/* Sender name for received messages (first in group) */}
         {!isOwn && showAvatar && (
           <p className="text-xs font-medium text-muted-foreground mb-1 ml-1">
@@ -88,15 +88,19 @@ export function MessageBubble({ message, isOwn, showAvatar, onContextMenu }: Mes
         {/* Message bubble */}
         <div
           className={cn(
-            'rounded-2xl text-[14px] leading-relaxed',
+            'rounded-2xl text-[14px] leading-relaxed overflow-hidden',
             message.type === 'STICKER'
               ? 'px-1 py-1'
               : cn(
-                  'px-4 py-2 shadow-sm',
                   isOwn ? 'rounded-br-md' : 'rounded-bl-md',
                   isOwn
                     ? 'bg-[var(--qc-bubble-sent)] text-[var(--qc-bubble-sent-text)]'
                     : 'bg-[var(--qc-bubble-received)] text-[var(--qc-bubble-received-text)]',
+                  // Media types fill the bubble edge-to-edge; everything else keeps the
+                  // classic padding so text doesn't touch the rounded corners.
+                  ['IMAGE', 'GIF', 'VIDEO'].includes(message.type)
+                    ? 'p-0 shadow-sm'
+                    : 'px-4 py-2 shadow-sm',
                 ),
           )}
         >
@@ -107,14 +111,14 @@ export function MessageBubble({ message, isOwn, showAvatar, onContextMenu }: Mes
             <img
               src={message.mediaUrl}
               alt="Image"
-              className="max-w-full rounded-lg"
+              className="block w-full h-auto max-h-[60vh] object-contain"
             />
           )}
           {message.type === 'GIF' && message.mediaUrl && (
             <img
               src={message.mediaUrl}
               alt="GIF"
-              className="max-w-[250px] rounded-lg"
+              className="block w-full h-auto max-h-[50vh] object-contain"
             />
           )}
           {message.type === 'STICKER' && (
@@ -124,12 +128,17 @@ export function MessageBubble({ message, isOwn, showAvatar, onContextMenu }: Mes
             <video
               src={message.mediaUrl}
               controls
-              className="max-w-[300px] rounded-lg"
+              className="block w-full h-auto max-h-[60vh]"
               preload="metadata"
             />
           )}
           {(message.type === 'AUDIO' || message.type === 'VOICE') && message.mediaUrl && (
-            <audio src={message.mediaUrl} controls className="max-w-[250px]" preload="metadata" />
+            <audio
+              src={message.mediaUrl}
+              controls
+              className="block w-full min-w-[180px] max-w-full"
+              preload="metadata"
+            />
           )}
           {message.type === 'FILE' && message.mediaUrl && (
             <a
