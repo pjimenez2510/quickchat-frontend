@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Archive, Mail, MoreVertical } from 'lucide-react';
+import { Archive, ArchiveRestore, Mail, MoreVertical } from 'lucide-react';
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -45,7 +45,7 @@ export function ConversationItem({
   currentUserId,
   onClick,
 }: ConversationItemProps) {
-  const { otherUser, lastMessage, isUnread } = conversation;
+  const { otherUser, lastMessage, isUnread, isArchived } = conversation;
   const [menuOpen, setMenuOpen] = useState(false);
 
   const initials = otherUser.displayName
@@ -70,11 +70,19 @@ export function ConversationItem({
     try {
       const res = await api.patch<null>(`/conversations/${conversation.id}/archive`);
       toast.success(res.message);
-      useChatStore.setState((state) => ({
-        conversations: state.conversations.filter((c) => c.id !== conversation.id),
-      }));
+      useChatStore.getState().archiveConversation(conversation.id);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to archive');
+    }
+  };
+
+  const handleUnarchive = async () => {
+    try {
+      const res = await api.patch<null>(`/conversations/${conversation.id}/unarchive`);
+      toast.success(res.message);
+      useChatStore.getState().unarchiveConversation(conversation.id);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to unarchive');
     }
   };
 
@@ -82,11 +90,7 @@ export function ConversationItem({
     try {
       const res = await api.patch<null>(`/conversations/${conversation.id}/unread`);
       toast.success(res.message);
-      useChatStore.setState((state) => ({
-        conversations: state.conversations.map((c) =>
-          c.id === conversation.id ? { ...c, isUnread: true } : c,
-        ),
-      }));
+      useChatStore.getState().markConversationUnread(conversation.id);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to mark unread');
     }
@@ -176,12 +180,20 @@ export function ConversationItem({
             <MoreVertical className="h-4 w-4" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-44">
-            <DropdownMenuItem onClick={handleMarkUnread}>
-              <Mail className="h-4 w-4 mr-2" /> Mark as unread
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleArchive}>
-              <Archive className="h-4 w-4 mr-2" /> Archive
-            </DropdownMenuItem>
+            {!isArchived && (
+              <DropdownMenuItem onClick={handleMarkUnread}>
+                <Mail className="h-4 w-4 mr-2" /> Mark as unread
+              </DropdownMenuItem>
+            )}
+            {isArchived ? (
+              <DropdownMenuItem onClick={handleUnarchive}>
+                <ArchiveRestore className="h-4 w-4 mr-2" /> Unarchive
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem onClick={handleArchive}>
+                <Archive className="h-4 w-4 mr-2" /> Archive
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

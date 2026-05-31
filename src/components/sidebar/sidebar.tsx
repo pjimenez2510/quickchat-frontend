@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Search, LogOut, MessageCircle, User, Archive } from 'lucide-react';
+import { Search, LogOut, MessageCircle, User, Archive, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -12,19 +12,25 @@ import { ConversationItem } from './conversation-item';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth-store';
 import { useChatStore } from '@/stores/chat-store';
+import { cn } from '@/lib/utils';
 import type { Conversation } from '@/types/conversation';
+
+type SidebarView = 'active' | 'archived';
 
 export function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const { user, clearAuth } = useAuthStore();
-  const { conversations, setConversations } = useChatStore();
+  const { conversations, archivedConversations, setArchivedConversations } = useChatStore();
   const activeConversationId = pathname?.startsWith('/chat/') ? pathname.split('/chat/')[1] : null;
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<
     { id: string; username: string; displayName: string; avatarUrl: string | null; isOnline: boolean }[]
   >([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [view, setView] = useState<SidebarView>('active');
+  const [isLoadingArchived, setIsLoadingArchived] = useState(false);
+  const [hasFetchedArchived, setHasFetchedArchived] = useState(false);
 
   useEffect(() => {
     if (!searchQuery.trim()) {
@@ -47,6 +53,22 @@ export function Sidebar() {
     return () => clearTimeout(timeout);
   }, [searchQuery]);
 
+  // Fetch archived once on first switch to that view; refetch when switching back if user wants freshness
+  useEffect(() => {
+    if (view !== 'archived' || hasFetchedArchived) return;
+    setIsLoadingArchived(true);
+    api
+      .get<Conversation[]>('/conversations/archived')
+      .then((res) => {
+        setArchivedConversations(res.data);
+        setHasFetchedArchived(true);
+      })
+      .catch((err) =>
+        toast.error(err instanceof Error ? err.message : 'Failed to load archived chats'),
+      )
+      .finally(() => setIsLoadingArchived(false));
+  }, [view, hasFetchedArchived, setArchivedConversations]);
+
   const handleStartConversation = async (otherUserId: string) => {
     try {
       const res = await api.post<Conversation>('/conversations', {
@@ -61,6 +83,7 @@ export function Sidebar() {
 
       setSearchQuery('');
       setSearchResults([]);
+      setView('active');
       router.push(`/chat/${res.data.id}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to start conversation');
@@ -80,6 +103,11 @@ export function Sidebar() {
     }
   };
 
+  const list = view === 'active' ? conversations : archivedConversations;
+  const emptyMessage = view === 'active'
+    ? 'No conversations yet.\nSearch for users to start chatting!'
+    : 'No archived chats.';
+
   return (
     <div className="flex h-full w-full flex-col border-r border-border bg-sidebar">
       {/* Header */}
@@ -89,9 +117,6 @@ export function Sidebar() {
           <h1 className="text-xl font-bold">Chats</h1>
         </div>
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" onClick={() => router.push('/settings/archived')} title="Archived chats">
-            <Archive className="h-4 w-4" />
-          </Button>
           <Button variant="ghost" size="icon" onClick={() => router.push('/settings/profile')} title="Edit profile">
             <User className="h-4 w-4" />
           </Button>
@@ -113,6 +138,46 @@ export function Sidebar() {
           />
         </div>
       </div>
+
+      {/* View tabs: active vs archived */}
+      {!searchQuery.trim() && (
+        <div className="px-3 pb-2 flex gap-1">
+          <button
+            type="button"
+            onClick={() => setView('active')}
+            className={cn(
+              'flex flex-1 items-center justify-center gap-2 h-9 rounded-full text-sm transition-colors',
+              view === 'active'
+                ? 'bg-primary/10 text-primary font-medium'
+                : 'text-muted-foreground hover:bg-accent',
+            )}
+            title="Active chats"
+          >
+            <MessageCircle className="h-4 w-4" />
+            <span>Chats</span>
+            {conversations.length > 0 && (
+              <span className="ml-1 text-xs opacity-70">{conversations.length}</span>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => setView('archived')}
+            className={cn(
+              'flex flex-1 items-center justify-center gap-2 h-9 rounded-full text-sm transition-colors',
+              view === 'archived'
+                ? 'bg-primary/10 text-primary font-medium'
+                : 'text-muted-foreground hover:bg-accent',
+            )}
+            title="Archived chats"
+          >
+            <Archive className="h-4 w-4" />
+            <span>Archived</span>
+            {hasFetchedArchived && archivedConversations.length > 0 && (
+              <span className="ml-1 text-xs opacity-70">{archivedConversations.length}</span>
+            )}
+          </button>
+        </div>
+      )}
 
       <Separator />
 
@@ -148,16 +213,18 @@ export function Sidebar() {
               ))
             )}
           </div>
+        ) : view === 'archived' && isLoadingArchived ? (
+          <div className="flex items-center justify-center py-10 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading archived...
+          </div>
         ) : (
           <div className="p-2">
-            {conversations.length === 0 ? (
-              <p className="px-3 py-8 text-center text-sm text-muted-foreground">
-                No conversations yet.
-                <br />
-                Search for users to start chatting!
+            {list.length === 0 ? (
+              <p className="px-3 py-8 text-center text-sm text-muted-foreground whitespace-pre-line">
+                {emptyMessage}
               </p>
             ) : (
-              conversations.map((conv) => (
+              list.map((conv) => (
                 <ConversationItem
                   key={conv.id}
                   conversation={conv}

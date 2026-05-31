@@ -64,22 +64,28 @@ export function SocketConnector({ children }: { children: React.ReactNode }) {
         socket.emit('message:read', { conversationId: data.conversationId });
       }
 
-      // Check if conversation exists in store
-      const exists = store.conversations.find(
+      // If the conversation is already in either list (active or archived), just
+      // update its last message — keep an archived chat archived even when new
+      // messages arrive, so the user controls when it returns to the main list.
+      const inActive = store.conversations.find((c) => c.id === data.conversationId);
+      const inArchived = store.archivedConversations.find(
         (c) => c.id === data.conversationId,
       );
 
-      if (exists) {
+      if (inActive || inArchived) {
         store.updateConversationLastMessage(data.conversationId, data.message);
       } else {
-        // New conversation — fetch it from API and add to store
+        // Genuinely unknown conversation — fetch it. The response already carries
+        // isArchived, so route it to the right list.
         try {
           const res = await api.get<Conversation>(
             `/conversations/${data.conversationId}`,
           );
-          useChatStore.setState((state) => ({
-            conversations: [res.data, ...state.conversations],
-          }));
+          useChatStore.setState((state) =>
+            res.data.isArchived
+              ? { archivedConversations: [res.data, ...state.archivedConversations] }
+              : { conversations: [res.data, ...state.conversations] },
+          );
         } catch {
           // Silently fail — conversation will appear on next reload
         }

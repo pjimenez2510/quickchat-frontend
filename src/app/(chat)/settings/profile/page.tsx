@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Camera, Loader2, Check, Users, Ban, Archive, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Camera, Loader2, Check, Users, Ban, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -251,7 +251,6 @@ export default function ProfilePage() {
             {[
               { href: '/settings/contacts', label: 'Contacts', icon: Users },
               { href: '/settings/blocked', label: 'Blocked users', icon: Ban },
-              { href: '/settings/archived', label: 'Archived chats', icon: Archive },
             ].map(({ href, label, icon: Icon }) => (
               <button
                 key={href}

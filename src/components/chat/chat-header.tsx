@@ -121,9 +121,7 @@ export function ChatHeader({
     try {
       const res = await api.patch<null>(`/conversations/${conversationId}/archive`);
       toast.success(res.message);
-      useChatStore.setState((state) => ({
-        conversations: state.conversations.filter((c) => c.id !== conversationId),
-      }));
+      useChatStore.getState().archiveConversation(conversationId);
       router.push('/');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to archive');
