@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Camera, Loader2, Check } from 'lucide-react';
+import { ArrowLeft, Camera, Loader2, Check, Users, Ban, Archive, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -32,6 +32,7 @@ export default function ProfilePage() {
   const [bio, setBio] = useState('');
   const [customStatus, setCustomStatus] = useState('');
   const [customStatusEmoji, setCustomStatusEmoji] = useState('');
+  const [activityVisibility, setActivityVisibility] = useState('ALL');
   const [isSaving, setIsSaving] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -46,6 +47,7 @@ export default function ProfilePage() {
         setBio(p.bio ?? '');
         setCustomStatus(p.customStatus ?? '');
         setCustomStatusEmoji(p.customStatusEmoji ?? '');
+        setActivityVisibility(p.activityVisibility ?? 'ALL');
         setIsLoaded(true);
       })
       .catch(() => {});
@@ -86,6 +88,7 @@ export default function ProfilePage() {
         bio: bio || undefined,
         customStatus: customStatus || undefined,
         customStatusEmoji: customStatusEmoji || undefined,
+        activityVisibility,
       });
       setUser({ ...user!, ...res.data.user });
       toast.success('Profile updated');
@@ -206,6 +209,63 @@ export default function ProfilePage() {
                 maxLength={100}
               />
             </div>
+          </div>
+
+          <Separator />
+
+          {/* Activity status visibility (RF-05) */}
+          <div className="space-y-3">
+            <div>
+              <h3 className="text-sm font-medium">Activity status</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Who can see when you&apos;re online and your last seen.
+              </p>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { value: 'ALL', label: 'Everyone' },
+                { value: 'CONTACTS_ONLY', label: 'Contacts' },
+                { value: 'NONE', label: 'Nobody' },
+              ].map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setActivityVisibility(opt.value)}
+                  className={`h-10 rounded-xl border text-sm transition-colors ${
+                    activityVisibility === opt.value
+                      ? 'border-primary bg-primary/10 text-primary font-medium'
+                      : 'border-border hover:bg-accent'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Quick links */}
+          <div className="space-y-1">
+            <h3 className="text-sm font-medium mb-2">Manage</h3>
+            {[
+              { href: '/settings/contacts', label: 'Contacts', icon: Users },
+              { href: '/settings/blocked', label: 'Blocked users', icon: Ban },
+              { href: '/settings/archived', label: 'Archived chats', icon: Archive },
+            ].map(({ href, label, icon: Icon }) => (
+              <button
+                key={href}
+                type="button"
+                onClick={() => router.push(href)}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-3 hover:bg-accent transition-colors"
+              >
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <Icon className="h-4 w-4" />
+                </span>
+                <span className="flex-1 text-left text-sm font-medium">{label}</span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </button>
+            ))}
           </div>
 
           <Separator />
