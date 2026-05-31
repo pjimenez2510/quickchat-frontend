@@ -55,7 +55,7 @@ export default function ArchivedPage() {
   };
 
   return (
-    <div className="flex flex-1 flex-col bg-background">
+    <div className="flex h-full flex-1 flex-col overflow-hidden bg-background">
       <div className="flex items-center gap-3 border-b border-border px-4 py-3">
         <button
           onClick={() => router.push('/')}

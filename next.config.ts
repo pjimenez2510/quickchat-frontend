@@ -24,7 +24,7 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
-  allowedDevOrigins: ['bbe6-2800-bf0-3014-106c-c8ba-ed42-13eb-d6e6.ngrok-free.app'],
+  allowedDevOrigins: ['wcvzjkgt-3000.use2.devtunnels.ms'],
 
   async headers() {
     return [
