@@ -19,6 +19,7 @@ export function ChatPanel() {
   const {
     activeConversationId,
     conversations,
+    archivedConversations,
     messages: messagesMap,
     typingUsers,
     setMessages,
@@ -29,9 +30,9 @@ export function ChatPanel() {
 
   const { socket, isConnected } = useSocketContext();
 
-  let conversation = conversations.find(
-    (c) => c.id === activeConversationId,
-  );
+  let conversation =
+    conversations.find((c) => c.id === activeConversationId) ||
+    archivedConversations.find((c) => c.id === activeConversationId);
 
   const currentMessages = activeConversationId
     ? messagesMap.get(activeConversationId) ?? []
@@ -42,31 +43,38 @@ export function ChatPanel() {
       )
     : [];
 
-  // Load conversation if not in store (e.g., direct URL access after reload)
+  // Load conversation if not in either list (e.g., direct URL access after reload).
+  // Place it in the active or archived list according to isArchived — don't drop an
+  // archived chat into the main list just because the user is viewing it.
   useEffect(() => {
     if (!activeConversationId) return;
 
-    const exists = useChatStore.getState().conversations.find(
-      (c) => c.id === activeConversationId,
-    );
+    const store = useChatStore.getState();
+    const exists =
+      store.conversations.find((c) => c.id === activeConversationId) ||
+      store.archivedConversations.find((c) => c.id === activeConversationId);
     if (exists) return;
 
     api
       .get<Conversation>(`/conversations/${activeConversationId}`)
       .then((res) => {
         useChatStore.setState((state) => {
-          const alreadyExists = state.conversations.find((c) => c.id === res.data.id);
-          if (alreadyExists) return state;
-          return { conversations: [res.data, ...state.conversations] };
+          const inActive = state.conversations.find((c) => c.id === res.data.id);
+          const inArchived = state.archivedConversations.find((c) => c.id === res.data.id);
+          if (inActive || inArchived) return state;
+          return res.data.isArchived
+            ? { archivedConversations: [res.data, ...state.archivedConversations] }
+            : { conversations: [res.data, ...state.conversations] };
         });
       })
       .catch(() => {});
   }, [activeConversationId]);
 
-  // Emit read receipt when opening a conversation
+  // Emit read receipt when opening a conversation and clear the manual "unread" flag (RF-21).
   useEffect(() => {
     if (!activeConversationId || !socket) return;
     socket.emit('message:read', { conversationId: activeConversationId });
+    useChatStore.getState().clearConversationUnread(activeConversationId);
   }, [activeConversationId, socket]);
 
   // Load messages when conversation changes
@@ -115,8 +123,10 @@ export function ChatPanel() {
   const [showSearch, setShowSearch] = useState(false);
   const messageListRef = useRef<MessageListHandle>(null);
 
-  // Re-read conversation after it might have been added
-  conversation = conversations.find((c) => c.id === activeConversationId);
+  // Re-read conversation after it might have been added (active or archived).
+  conversation =
+    conversations.find((c) => c.id === activeConversationId) ||
+    archivedConversations.find((c) => c.id === activeConversationId);
 
   if (!activeConversationId || !conversation) {
     return (
@@ -134,6 +144,9 @@ export function ChatPanel() {
         avatarUrl={conversation.otherUser.avatarUrl}
         isOnline={conversation.otherUser.isOnline}
         lastSeenAt={conversation.otherUser.lastSeenAt}
+        customStatus={conversation.otherUser.customStatus}
+        customStatusEmoji={conversation.otherUser.customStatusEmoji}
+        otherUserId={conversation.otherUser.id}
         isTyping={typingInConversation.length > 0}
         conversationId={conversation.id}
         onTogglePinned={() => { setShowPinned(!showPinned); setShowSearch(false); }}

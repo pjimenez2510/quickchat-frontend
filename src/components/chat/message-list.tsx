@@ -25,6 +25,8 @@ export const MessageList = forwardRef<MessageListHandle, MessageListProps>(
     const containerRef = useRef<HTMLDivElement>(null);
     const bottomRef = useRef<HTMLDivElement>(null);
     const prevLengthRef = useRef(0);
+    const prevConvIdRef = useRef<string | null>(null);
+    const isLoadingMoreRef = useRef(false);
     const { socket } = useSocketContext();
 
     const [contextMenu, setContextMenu] = useState<{
@@ -48,17 +50,41 @@ export const MessageList = forwardRef<MessageListHandle, MessageListProps>(
       },
     }));
 
+    // Scroll policy:
+    // - Conversation just opened (or switched to): jump straight to the bottom
+    //   without animation, even with hundreds of messages.
+    // - Already on this conversation and a new message arrived: smooth scroll.
+    // - Prepending older messages via infinite scroll: do nothing here (the
+    //   infinite-scroll handler restores scrollTop itself).
     useEffect(() => {
+      const container = containerRef.current;
+      if (!container) return;
+
+      const convId = messages[0]?.conversationId ?? null;
+      const convChanged = convId !== prevConvIdRef.current;
+
+      if (convChanged) {
+        prevConvIdRef.current = convId;
+        prevLengthRef.current = messages.length;
+        if (messages.length > 0) {
+          // requestAnimationFrame so the DOM has the new messages before we jump.
+          requestAnimationFrame(() => {
+            container.scrollTop = container.scrollHeight;
+          });
+        }
+        return;
+      }
+
+      if (isLoadingMoreRef.current) {
+        // The infinite-scroll handler is restoring scrollTop manually.
+        prevLengthRef.current = messages.length;
+        return;
+      }
+
       if (messages.length > prevLengthRef.current) {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
       }
       prevLengthRef.current = messages.length;
-    }, [messages.length]);
-
-    useEffect(() => {
-      if (messages.length > 0 && prevLengthRef.current === 0) {
-        bottomRef.current?.scrollIntoView({ behavior: 'instant' });
-      }
     }, [messages]);
 
     // Scroll infinite — load older messages
@@ -72,6 +98,7 @@ export const MessageList = forwardRef<MessageListHandle, MessageListProps>(
           if (!convId) return;
 
           setIsLoadingMore(true);
+          isLoadingMoreRef.current = true;
           const cursor = messages[0].id;
           const prevScrollHeight = container.scrollHeight;
 
@@ -84,11 +111,18 @@ export const MessageList = forwardRef<MessageListHandle, MessageListProps>(
                 useChatStore.getState().prependMessages(convId, res.data.reverse());
                 requestAnimationFrame(() => {
                   container.scrollTop = container.scrollHeight - prevScrollHeight;
+                  isLoadingMoreRef.current = false;
                 });
               }
             })
             .catch(() => {})
-            .finally(() => setIsLoadingMore(false));
+            .finally(() => {
+              setIsLoadingMore(false);
+              // Reset the flag even if no data was returned, so future appends scroll smoothly.
+              requestAnimationFrame(() => {
+                isLoadingMoreRef.current = false;
+              });
+            });
         }
       };
 

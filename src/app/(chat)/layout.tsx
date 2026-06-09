@@ -19,7 +19,11 @@ export default function ChatLayout({
   const pathname = usePathname();
   const { isAuthenticated, setUser, clearAuth } = useAuthStore();
   const [isLoading, setIsLoading] = useState(true);
-  const isInConversation = pathname?.startsWith('/chat/');
+  // En móvil, el panel derecho (chat o pantallas de ajustes) se muestra como
+  // vista de detalle; el sidebar ocupa la raíz. Cualquier ruta distinta de '/'
+  // es una vista de detalle (incluye /chat/* y /settings/*) — antes solo /chat/*
+  // hacía visible el panel, por lo que /settings/profile quedaba oculto en móvil.
+  const isInConversation = !!pathname && pathname !== '/';
 
   useEffect(() => {
     const token =

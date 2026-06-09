@@ -4,11 +4,13 @@ import type { Message } from '@/types/message';
 
 interface ChatState {
   conversations: Conversation[];
+  archivedConversations: Conversation[];
   activeConversationId: string | null;
   messages: Map<string, Message[]>;
   typingUsers: Map<string, string[]>;
 
   setConversations: (conversations: Conversation[]) => void;
+  setArchivedConversations: (conversations: Conversation[]) => void;
   setActiveConversation: (id: string | null) => void;
   addMessage: (conversationId: string, message: Message) => void;
   setMessages: (conversationId: string, messages: Message[]) => void;
@@ -18,6 +20,10 @@ interface ChatState {
   updateUserOnlineStatus: (userId: string, isOnline: boolean, lastSeenAt: string) => void;
   markMessageDelivered: (conversationId: string, messageId: string) => void;
   markConversationRead: (conversationId: string, senderId: string) => void;
+  clearConversationUnread: (conversationId: string) => void;
+  markConversationUnread: (conversationId: string) => void;
+  archiveConversation: (conversationId: string) => void;
+  unarchiveConversation: (conversationId: string) => void;
   updateMessage: (conversationId: string, messageId: string, updates: Partial<Message>) => void;
   removeMessage: (conversationId: string, messageId: string) => void;
   replyToMessage: Message | null;
@@ -26,11 +32,14 @@ interface ChatState {
 
 export const useChatStore = create<ChatState>((set) => ({
   conversations: [],
+  archivedConversations: [],
   activeConversationId: null,
   messages: new Map(),
   typingUsers: new Map(),
 
   setConversations: (conversations) => set({ conversations }),
+
+  setArchivedConversations: (archivedConversations) => set({ archivedConversations }),
 
   setActiveConversation: (id) => set({ activeConversationId: id }),
 
@@ -66,7 +75,7 @@ export const useChatStore = create<ChatState>((set) => ({
 
   updateConversationLastMessage: (conversationId, message) =>
     set((state) => {
-      const updated = state.conversations.map((c) =>
+      const mapper = (c: Conversation) =>
         c.id === conversationId
           ? {
               ...c,
@@ -79,13 +88,15 @@ export const useChatStore = create<ChatState>((set) => ({
               },
               updatedAt: message.createdAt,
             }
-          : c,
-      );
-      updated.sort(
-        (a, b) =>
-          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-      );
-      return { conversations: updated };
+          : c;
+      const byUpdatedAt = (a: Conversation, b: Conversation) =>
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+
+      const conversations = state.conversations.map(mapper).sort(byUpdatedAt);
+      const archivedConversations = state.archivedConversations
+        .map(mapper)
+        .sort(byUpdatedAt);
+      return { conversations, archivedConversations };
     }),
 
   setTyping: (conversationId, userId, isTyping) =>
@@ -104,8 +115,8 @@ export const useChatStore = create<ChatState>((set) => ({
     }),
 
   updateUserOnlineStatus: (userId, isOnline, lastSeenAt) =>
-    set((state) => ({
-      conversations: state.conversations.map((c) =>
+    set((state) => {
+      const mapper = (c: Conversation) =>
         c.otherUser.id === userId
           ? {
               ...c,
@@ -115,9 +126,12 @@ export const useChatStore = create<ChatState>((set) => ({
                 lastSeenAt,
               },
             }
-          : c,
-      ),
-    })),
+          : c;
+      return {
+        conversations: state.conversations.map(mapper),
+        archivedConversations: state.archivedConversations.map(mapper),
+      };
+    }),
 
   markMessageDelivered: (conversationId, messageId) =>
     set((state) => {
@@ -181,5 +195,57 @@ export const useChatStore = create<ChatState>((set) => ({
         );
       }
       return { messages: newMessages };
+    }),
+
+  clearConversationUnread: (conversationId) =>
+    set((state) => ({
+      conversations: state.conversations.map((c) =>
+        c.id === conversationId && c.isUnread ? { ...c, isUnread: false } : c,
+      ),
+      archivedConversations: state.archivedConversations.map((c) =>
+        c.id === conversationId && c.isUnread ? { ...c, isUnread: false } : c,
+      ),
+    })),
+
+  markConversationUnread: (conversationId) =>
+    set((state) => ({
+      conversations: state.conversations.map((c) =>
+        c.id === conversationId ? { ...c, isUnread: true } : c,
+      ),
+      archivedConversations: state.archivedConversations.map((c) =>
+        c.id === conversationId ? { ...c, isUnread: true } : c,
+      ),
+    })),
+
+  archiveConversation: (conversationId) =>
+    set((state) => {
+      const target = state.conversations.find((c) => c.id === conversationId);
+      const conversations = state.conversations.filter((c) => c.id !== conversationId);
+      if (!target) return { conversations };
+      const updated = { ...target, isArchived: true };
+      const exists = state.archivedConversations.some((c) => c.id === conversationId);
+      const archivedConversations = exists
+        ? state.archivedConversations.map((c) =>
+            c.id === conversationId ? updated : c,
+          )
+        : [updated, ...state.archivedConversations];
+      return { conversations, archivedConversations };
+    }),
+
+  unarchiveConversation: (conversationId) =>
+    set((state) => {
+      const target = state.archivedConversations.find((c) => c.id === conversationId);
+      const archivedConversations = state.archivedConversations.filter(
+        (c) => c.id !== conversationId,
+      );
+      if (!target) return { archivedConversations };
+      const updated = { ...target, isArchived: false };
+      const exists = state.conversations.some((c) => c.id === conversationId);
+      const conversations = exists
+        ? state.conversations.map((c) => (c.id === conversationId ? updated : c))
+        : [updated, ...state.conversations].sort(
+            (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+          );
+      return { conversations, archivedConversations };
     }),
 }));
